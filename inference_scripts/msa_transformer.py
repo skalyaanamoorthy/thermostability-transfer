@@ -48,6 +48,7 @@ def subsample(infile, nseqs, reps):
 
                 seqs[0] = (0, ''.join(aln[0][match_cols]))
                 outfile = '/'.join(infile.split('/')[:-1]) + '/subsampled/'
+                os.makedirs(outfile, exist_ok=True)
                 outfile += infile.split('/')[-1].replace('.a3m', f'_reduced_subsampled_{i}.a3m')
                 align.write_a3m(seqs, open(outfile, 'w'))
 
@@ -92,42 +93,25 @@ def score_sequences(args):
         model = model.cuda()
         print("Transferred model to GPU")
 
-    for i in range(5):
-        with tqdm(total=len(df2)) as pbar:
-            for code, group in df2.groupby('code'):
-                if args.do_subsampling:
-                    sequence = group.head(1)['uniprot_seq'].item()
-                    print(os.path.join(args.alignments, f'{code}_*.a3m'))
-                    matching_files = glob.glob(os.path.join(args.alignments, f'{code}_*.a3m'))
-                    print(matching_files)
-                    #numerical_files = [f for f in matching_files if re.match(f'{args.alignments}/{code}_[0-9]+_MSA.a3m', f)]
-                    #try:
-                    #    assert len(numerical_files) == 1, f"Expected one file, but found {len(numerical_files)}"
-                    #except AssertionError as e:
-                    #    print(e)
-                    #    continue
-                    assert len(matching_files) == 1, f"Expected one file, but found {len(matching_files)}"
-                    orig_msa = matching_files[0]
-                    subsample(orig_msa, nseqs=384, reps=5)
-                    msa = os.path.join(args.alignments, 'subsampled/')
-                    os.makedirs(msa, exist_ok=True)
-                    msa += orig_msa.split('/')[-1].replace('.a3m', f'_reduced_subsampled_{i}.a3m')
-                #else:
-                #    matching_files_fp = glob.glob(f'{args.alignments}/{code}_*_MSA_cov75_id90_reduced_subsampled_{i}.a3m')
-                #    matching_files_s669 = glob.glob(f'{args.alignments}/{code}_MSA_full_cov75_id90_reduced_subsampled_{i}.a3m')
-                #    matching_files_s669_exp = glob.glob(f'{args.alignments}/{code}_MSA_full_expanded_cov75_id90_reduced_subsampled_{i}.a3m')
-                #    if len(matching_files_s669_exp) > 0:
-                #        matching_files = matching_files_s669_exp
-                #    elif len(matching_files_s669) > 0:
-                #        matching_files = matching_files_s669
-                #    else:
-                #        matching_files = matching_files_fp
-                    try:
-                        assert len(matching_files) == 1, f"Expected one file, but found {len(matching_files)}"
-                    except AssertionError as e:
-                        print(e)
-                        continue
-                    msa = matching_files[0]
+    with tqdm(total=len(df2['code'].unique())) as pbar:
+        for code, group in df2.groupby('code'):
+            msas = os.path.join(args.alignments, 'subsampled/')
+            os.makedirs(msas, exist_ok=True)
+
+            sequence = group.head(1)['uniprot_seq'].item()
+            matching_files = glob.glob(os.path.join(args.alignments, f'{code}_*.a3m'))
+            assert len(matching_files) == 1, f"Expected one file, but found {len(matching_files)}"
+            orig_msa = matching_files[0]
+            subsample(orig_msa, nseqs=384, reps=5)
+
+            for i in range(5):
+                
+                msa = os.path.join(msas, orig_msa.split('/')[-1].replace('.a3m', f'_reduced_subsampled_{i}.a3m'))
+                print(msa)
+                if not os.path.exists(msa):
+                    print(f'Only 1 subsampled alignment for {code}, skipping to next protein')
+                    continue
+        
                 for uid, row in group.iterrows():
                     with torch.no_grad():
                         try:
@@ -144,7 +128,6 @@ def score_sequences(args):
                             start = time.time()
 
                             batch_converter = alphabet.get_batch_converter()
-                            print(ws)
                             data = [read_msa(msa, 384, ws, ws+1022)]
                             batch_labels, batch_strs, batch_tokens = batch_converter(data)
 
@@ -167,7 +150,7 @@ def score_sequences(args):
                             print(e, code, wt, pos, mt)
                             logps.at[uid, f'msa_{i+1}_dir'] = np.nan
                             logps.at[uid, f'runtime_msa_{i+1}_dir'] = np.nan
-                        pbar.update(1)
+            pbar.update(1)
                     
     logps['msa_transformer_median_dir'] = logps[[f'msa_{i+1}_dir' for i in range(5)]].median(axis=1)
     logps['msa_transformer_mean_dir'] = logps[[f'msa_{i+1}_dir' for i in range(5)]].mean(axis=1)
@@ -189,16 +172,18 @@ def main():
     )
     parser.add_argument(
             '--alignments', '-a', type=str,
-            help='directory where alignments are stored'
+            help='directory where alignments are stored. There should be only\
+                one file matching the pattern CODE_*.a3m where CODE is the pdb\
+                id of the structure the alignment is based upon'
     )
     parser.add_argument(
             '--output', '-o', type=str,
             help='location of the database used to store predictions.\
                   Should be a copy of the mapped database with additional cols'
     )
-    parser.add_argument(
-            '--do_subsampling', action='store_true', help='whether to subsample the MSA down to 384',
-    )
+    #parser.add_argument(
+    #        '--do_subsampling', action='store_true', help='whether to subsample the MSA down to 384',
+    #)
     args = parser.parse_args()
 
     score_sequences(args)

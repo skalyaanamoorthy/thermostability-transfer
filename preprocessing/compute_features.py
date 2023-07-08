@@ -3,6 +3,7 @@ import argparse
 import numpy as np
 import pandas as pd
 import requests
+import urllib
 
 from tqdm import tqdm
 from quantiprot.metrics import aaindex
@@ -34,7 +35,7 @@ def get_sprot_raw_with_retry(uniprot_id, max_retries=5, delay=5):
             else:
                 raise  # If the error is something else, raise it
     raise Exception("Max retries exceeded with HTTP 500 errors.")
-    
+
 
 def run_alistat(alignment_file, alistat_loc, output_loc):
     print(f'Running AliStat on {alignment_file}')

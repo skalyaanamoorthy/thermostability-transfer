@@ -9,4 +9,5 @@ data/msas/subsampled/
 data/msas/subsampled_original/
 data/msas/unused/
 requirements_old.txt
+requirements_old_2.txt
 fresh/
