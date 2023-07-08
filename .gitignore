@@ -1,0 +1,12 @@
+alignments/
+assemblies/
+predictions/
+sequences/
+structures/
+windows/
+preprocessing/__pycache__/
+data/msas/subsampled/
+data/msas/subsampled_original/
+data/msas/unused/
+requirements_old.txt
+fresh/
