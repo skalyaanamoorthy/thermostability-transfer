@@ -1,6 +1,13 @@
+Clone the repository:
+
+`git clone https://github.com/skalyaanamoorthy/thermostability-transfer.git`
+
+`cd thermostability-transfer`
+
 Make a new virual environment:
 
 `virtualenv pslm -p python3.9`
+
 `source pslm/bin/activate`
 
 Install Pytorch according to the instructions (you might also need to install cuda): https://pytorch.org/get-started/locally/
@@ -19,7 +26,7 @@ ProteinMPNN:
 
 `git clone https://github.com/dauparas/ProteinMPNN`
 	
- note: ProteinMPNN directory will be used as input for ProteinMPNN scripts
+ Note: ProteinMPNN directory will be used as input for ProteinMPNN scripts
 
 Tranception:
 
