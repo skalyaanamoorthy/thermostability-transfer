@@ -51,7 +51,7 @@ def score_singlechain_backbones(model, alphabet, args):
                                 ll_mut, _ = esm.inverse_folding.util.score_sequence(
                                         model, alphabet, masked_coords, str(seq))
                                 logps.at[uid, f'esmif_monomer_full{"_masked" if args.masked else "_"}_dir'] = ll_mut - ll_wt
-                                logps.at[uid, f'ppl_esmif_monomer_full{"_masked" if args.masked else "_"}_dir'] = np.exp(-ll_wt)
+                                logps.at[uid, f'pll_esmif_monomer_full{"_masked" if args.masked else "_"}_dir'] = np.exp(-ll_wt)
                         except Exception as e:
                                 print(e)
                                 print(pdb_file, chain)
@@ -113,7 +113,7 @@ def score_multichain_backbones(model, alphabet, args):
                                 ll_mut, _ = esm.inverse_folding.multichain_util.score_sequence_in_complex(
                                         model, alphabet, masked_coords, target_chain_id, str(seq))
                                 logps.at[uid, f'esmif_multimer_full{"_masked" if args.masked else "_"}_dir'] = ll_mut - ll_wt
-                                logps.at[uid, f'ppl_esmif_multimer_full{"_masked" if args.masked else "_"}_dir'] = np.exp(-ll_wt)
+                                logps.at[uid, f'pll_esmif_multimer_full{"_masked" if args.masked else "_"}_dir'] = np.exp(-ll_wt)
                         #except Exception as e:
                         #        print(e)
                         #        print(pdb_file, chain)

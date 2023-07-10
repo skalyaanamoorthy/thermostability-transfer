@@ -97,8 +97,13 @@ def get_residue_features(uniprot_id, chain_id, residue_id):
     Uses UniProt ID to get residue features from SwissProt
     Returns a list of features
     """
-    handle = get_sprot_raw_with_retry(uniprot_id)
-    record = SwissProt.read(handle)
+    try:
+        handle = get_sprot_raw_with_retry(uniprot_id)
+        record = SwissProt.read(handle)
+    except Exception as e:
+        print(e)
+        return []
+    
     features = []
     # iterate over all features for the given UniProt ID
     for feature in record.features:
@@ -445,6 +450,7 @@ def extract_features(database_loc, path='~/OneDrive/thermostability_transfer'):
 
         for uid, row in group.iterrows():
             df_out.at[uid, 'structure_length'] = len(pdb_seq)
+            df_out.at[uid, 'sequence_length'] = row['uniprot_seq']
 
             wt = row['wild_type']
             target_pos = row['position'] + \

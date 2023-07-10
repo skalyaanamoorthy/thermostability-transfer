@@ -25,6 +25,8 @@ def subsample(infile, nseqs, reps):
         aln.set_weights()
         with open('neff.csv', 'a') as f:
             f.write(f"{infile.split('/')[-1].split('_')[0]}, {sum(aln.weights)}\n")
+        outfolder = '/'.join(infile.split('/')[:-1]) + '/subsampled/'
+        os.makedirs(outfolder, exist_ok=True)
 
         if len(aln) < nseqs:
             print(len(aln))
@@ -35,7 +37,9 @@ def subsample(infile, nseqs, reps):
                 seqs.append((s, ''.join(aln[s][match_cols])))
 
             seqs[0] = (0, ''.join(aln[0][match_cols]))
-            align.write_a3m(seqs, open(infile.replace('.a3m', f'_subsampled_0.a3m'), 'w'))
+
+            outfile = os.path.join(outfolder, infile.split('/')[-1].replace('.a3m', f'_reduced_subsampled_0.a3m'))
+            align.write_a3m(seqs, open(outfile, 'w'))
             return
 
         for i in range(reps):
@@ -47,23 +51,22 @@ def subsample(infile, nseqs, reps):
                     seqs.append((s, ''.join(aln[s][match_cols])))
 
                 seqs[0] = (0, ''.join(aln[0][match_cols]))
-                outfile = '/'.join(infile.split('/')[:-1]) + '/subsampled/'
-                os.makedirs(outfile, exist_ok=True)
-                outfile += infile.split('/')[-1].replace('.a3m', f'_reduced_subsampled_{i}.a3m')
+
+                outfile = os.path.join(outfolder, infile.split('/')[-1].replace('.a3m', f'_reduced_subsampled_{i}.a3m'))
                 align.write_a3m(seqs, open(outfile, 'w'))
 
 
-def remove_insertions(sequence: str) -> str:
-    """ 
-    Removes any insertions into the sequence. Needed to load aligned sequences 
-    in an MSA. 
-    """
-    # This is an efficient way to delete lowercase characters and insertion characters from a string
-    deletekeys = dict.fromkeys(string.ascii_lowercase)
-    deletekeys["."] = None
-    deletekeys["*"] = None
-    translation = str.maketrans(deletekeys)
-    return sequence.translate(translation)
+#def remove_insertions(sequence: str) -> str:
+#    """ 
+#    Removes any insertions into the sequence. Needed to load aligned sequences 
+#    in an MSA. 
+#    """
+#    # This is an efficient way to delete lowercase characters and insertion characters from a string
+#    deletekeys = dict.fromkeys(string.ascii_lowercase)
+#    deletekeys["."] = None
+#    deletekeys["*"] = None
+#    translation = str.maketrans(deletekeys)
+#    return sequence.translate(translation)
 
 
 def read_msa(filename: str, nseq: int, start: int, end: int):
@@ -73,7 +76,7 @@ def read_msa(filename: str, nseq: int, start: int, end: int):
     be in a3m format (although we use the SeqIO fasta parser) for 
     remove_insertions to work properly.
     """
-    msa = [(record.description, remove_insertions(str(record.seq[start:end])))
+    msa = [(record.description, str(record.seq[start:end])) #record.seq[start:end]
             for record in itertools.islice(SeqIO.parse(filename, "fasta"), nseq)
           ]
     return msa
@@ -100,7 +103,9 @@ def score_sequences(args):
 
             sequence = group.head(1)['uniprot_seq'].item()
             matching_files = glob.glob(os.path.join(args.alignments, f'{code}_*.a3m'))
-            assert len(matching_files) == 1, f"Expected one file, but found {len(matching_files)}"
+            assert len(matching_files) <= 1, f"Expected one file, but found {len(matching_files)}"
+            if len(matching_files) == 0:
+                continue
             orig_msa = matching_files[0]
             subsample(orig_msa, nseqs=384, reps=5)
 
@@ -128,6 +133,7 @@ def score_sequences(args):
                             start = time.time()
 
                             batch_converter = alphabet.get_batch_converter()
+                            # msas in repo have already been reduced
                             data = [read_msa(msa, 384, ws, ws+1022)]
                             batch_labels, batch_strs, batch_tokens = batch_converter(data)
 
