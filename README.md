@@ -1,3 +1,9 @@
+## General Setup
+
+We provide the processed predictions for FireProtDB and S461 in `./data/fireprot_mapped_preds.csv` and `./data/s461_mapped_preds.csv`, respectively.
+However, to reproduce the predictions you can follow the below sections for preprocessing and inference. We also provide the pre-extracted features
+for analysis in the corresponding `./data/{dataset}_mapped_feats.csv` files, but you can reproduce those according to the feature analysis section.
+
 Clone the repository:
 
 `git clone https://github.com/skalyaanamoorthy/thermostability-transfer.git`
@@ -10,7 +16,13 @@ Make a new virual environment:
 
 `source pslm/bin/activate`
 
-Install Pytorch according to the instructions (you might also need to install cuda): https://pytorch.org/get-started/locally/
+## Inference Setup
+
+If you have a sufficient NVIDIA GPU (tested on 3090 and A100) you can make predictions with the deep learning models.
+
+Start by installing CUDA if you have not already: https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html
+
+Then install Pytorch according to the instructions: https://pytorch.org/get-started/locally/
 
 Now you can install the requirements:
 
@@ -20,23 +32,27 @@ Finally, install evcouplings with no dependencies (it is an old package which wi
 
 `pip install evcouplings --no-deps`
 
-You will also need to install the following inference repositories if you wish to use them:
+You will also need to install the following inference repositories if you wish to use these specific models:
 
 ProteinMPNN:
 
 `git clone https://github.com/dauparas/ProteinMPNN`
 	
- Note: ProteinMPNN directory will be used as input for ProteinMPNN scripts
+Note: ProteinMPNN directory will be used as input for ProteinMPNN scripts; it will need to be specify
 
 Tranception:
 
 `https://github.com/OATML-Markslab/Tranception`
 
-Follow the instructions in the repo to get the Tranception_Large (parameters) binary and config
+Follow the instructions in the repo to get the Tranception_Large (parameters) binary and config. You do not need to the setup the conda environment.
 
-You will need the following for preprocessing:
+## Preprocessing Setup
 
-Modeller: https://salilab.org/modeller/download_installation.html
+In order to perform inference you will first need to preprocess the structures and sequences. Follow the above instructions before proceeding.
+
+You will need the following additional tools for preprocessing:
+
+Modeller (for repairing PDB structures): https://salilab.org/modeller/download_installation.html
 
 (you will need a license, which is free for academic use)
 
@@ -48,22 +64,6 @@ Ensuring to replace the modeller version and system architecture as required. Th
 
 `source pslm/bin/activate`
 
-You will need the following for computing features:
-
-AliStat:
-
-`git clone https://github.com/thomaskf/AliStat`
-`cd AliStat`
-`make`
-This sequence should work, but see the instructions on the repo if not
-
-DSSP
-
-`sudo apt install dssp`
-OR
-`git clone https://github.com/cmbi/dssp` 
-and follow instructions.
-
 To run inference on either FireProtDB or S669/S461 you will need to preprocess the mutants in each database, obtaining their structures and sequences and modelling missing residues. You can accomplish this with preprocess.py. Assuming you are in the base level of the repo, you can call:
 
 `python3 preprocessing/preprocess.py`
@@ -71,17 +71,42 @@ To run inference on either FireProtDB or S669/S461 you will need to preprocess t
 Note that the output dataframe `./data/fireprot_mapped.csv` is already generated, but the other files are not prepared.
 It is expected to see the message '507 observations lost from the original dataset' for FireProtDB. Note that you will also have to do this for S669.
 
+## Running Inference
+
 Then, you can run any of the inference scripts in inference scripts. You can use the template calls from cluster_inference_scripts in order to determine the template for calling each method's wrapper script. For instance, to run ProteinMPNN with 0.2 Angstrom backbone noise on FireProtDB:
 
 python inference_scripts/mpnn.py --db_location 'data/fireprot_mapped.csv' --output 'data/fireprot_mapped_preds.csv' --mpnn_loc ~/software/ProteinMPNN --noise '20'
 
 Note that ProteinMPNN and Tranception require the location where the github repository was installed as arguments.
 
+## Feature Analysis Setup
+
 For analysis based on features, you can compute the features using preprocessing/compute_features.py. Note that the features have been precomputed and appear in `./data/fireprot_mapped_feats.csv`:
+You will need the following tools to help recompute features:
+
+AliStat (for getting multiple sequence alignment statistics): https://github.com/thomaskf/AliStat
+
+`git clone https://github.com/thomaskf/AliStat`
+`cd AliStat`
+`make`
+
+DSSP (for extracting secondary structure and residue accessibility): https://github.com/cmbi/dssp
+
+`sudo apt install dssp`
+
+OR
+
+`git clone https://github.com/cmbi/dssp` and follow instructions.
+
+Finally, you can run the following to compute the features. 
 
 `python3 preprocessing/compute_features.py`
 
-Then, you can use the analysis_notebooks to reproduce the figures.
+It is expected that there will be some errors in computing features. AliStats might fail for large alignments if you do not have enough RAM. Remember that the features have been pre-computed for your convience as stated above, and any missing features can be handled by merging dataframes.
+
+## Analysis
+
+Then, you can use the analysis_notebooks to reproduce the figures, modifying the path(s) at the start of the file and running each cell.
 
 
 
