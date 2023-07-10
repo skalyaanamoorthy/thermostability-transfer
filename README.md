@@ -12,13 +12,13 @@ Make a new virual environment:
 
 Install Pytorch according to the instructions (you might also need to install cuda): https://pytorch.org/get-started/locally/
 
-torch-* must be installed after torch:
-
-`pip install torch-geometric` %torch-cluster torch-scatter torch-sparse torch-spline-conv
-
-Now you can install the requirements with no additional dependencies:
+Now you can install the requirements:
 
 `pip install -r requirements.txt`
+
+Finally, install evcouplings with no dependencies (it is an old package which will create conflicts):
+
+`pip install evcouplings --no-deps`
 
 You will also need to install the following inference repositories if you wish to use them:
 
@@ -40,21 +40,9 @@ Modeller: https://salilab.org/modeller/download_installation.html
 
 (you will need a license, which is free for academic use)
 
-To make modeller visible to the Python scripts, you can append the following to your ./pslm/bin/activate file:
+To make modeller visible to the Python scripts, you can append to your ./pslm/bin/activate file following the pattern shown in convenience_scripts/append_modeller_paths.sh:
 
-`if [ -z $PYTHONPATH ]
-then
-    export PYTHONPATH="/usr/lib/modeller10.4/modlib/:/usr/lib/modeller10.4/lib/x86_64-intel8/python3.3/"
-else
-    export PYTHONPATH="/usr/lib/modeller10.4/modlib/:/usr/lib/modeller10.4/lib/x86_64-intel8/python3.3:${PYTHONPATH}:"
-fi
-
-if [ -z $LD_LIBRARY_PATH ]
-then
-    export LD_LIBRARY_PATH="/usr/lib/modeller10.4/lib/x86_64-intel8"
-else
-    export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/lib/modeller10.4/lib/x86_64-intel8"
-fi`
+`sh convenience_scripts/append_modeller_paths.sh`
 
 Ensuring to replace the modeller version and system architecture as required. Then make sure to restart the virtualenv:
 
