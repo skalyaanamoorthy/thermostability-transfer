@@ -65,9 +65,9 @@ Ensuring to replace the modeller version and system architecture as required. Th
 
 `source pslm/bin/activate`
 
-To run inference on either FireProtDB or S669/S461 you will need to preprocess the mutants in each database, obtaining their structures and sequences and modelling missing residues. You can accomplish this with preprocess.py. Assuming you are in the base level of the repo, you can call:
+To run inference on either FireProtDB or S669/S461 you will need to preprocess the mutants in each database, obtaining their structures and sequences and modelling missing residues. You can accomplish this with preprocess.py. Assuming you are in the base level of the repo, you can call the following (will use the raw FireProtDB obtained from https://loschmidt.chemi.muni.cz/fireprotdb/ Browse Database tab):
 
-`python3 preprocessing/preprocess.py`
+`python3 preprocessing/preprocess.py --dataset fireprotdb`
 
 Note that the output dataframe `./data/fireprot_mapped.csv` is already generated, but the other files are not prepared.
 It is expected to see the message '507 observations lost from the original dataset' for FireProtDB. Note that you will also have to do this for S669.
