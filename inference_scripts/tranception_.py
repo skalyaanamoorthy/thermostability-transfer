@@ -41,12 +41,8 @@ def score_sequence(args):
                 print(DMS_file_name)
 
                 DMS_id = DMS_file_name.split("/")[-1].split(".")[0]
-                #MSA_data_file = group['msa_filename'].head(1).item() 
-                
-                matching_files = glob.glob(os.path.join(args.alignments, f'{code}_*.a3m'))
-                #print(matching_files)
-                assert len(matching_files) == 1, f"Expected one file, but found {len(matching_files)}"
-                MSA_data_file = matching_files[0]
+
+                MSA_data_file = group.head(1)['msa_file'].item()
                 MSA_start = 0 #args.MSA_start - 1 # MSA_start based on 1-indexing
                 MSA_end = len(target_seq) # + 1 #args.MSA_end
 

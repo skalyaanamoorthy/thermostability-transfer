@@ -124,7 +124,7 @@ def renumber_pdb(pdb_file, output_file):
     """
 
     # Parse the structure
-    parser = PDBParser()
+    parser = PDBParser(QUIET=True)
     structure = parser.get_structure('structure', pdb_file)
 
     # Temporarily renumber the residues with a large offset to avoid conflicts

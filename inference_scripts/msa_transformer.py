@@ -102,11 +102,7 @@ def score_sequences(args):
             os.makedirs(msas, exist_ok=True)
 
             sequence = group.head(1)['uniprot_seq'].item()
-            matching_files = glob.glob(os.path.join(args.alignments, f'{code}_*.a3m'))
-            assert len(matching_files) <= 1, f"Expected one file, but found {len(matching_files)}"
-            if len(matching_files) == 0:
-                continue
-            orig_msa = matching_files[0]
+            orig_msa = group.head(1)['msa_file'].item()
             subsample(orig_msa, nseqs=384, reps=5)
 
             for i in range(5):

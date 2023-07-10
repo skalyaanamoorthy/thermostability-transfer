@@ -9,6 +9,7 @@ ready for prediction by other tools.
 import os
 import argparse
 import utils
+import glob
 
 import pandas as pd
 
@@ -58,7 +59,7 @@ def main(args):
     if 'fireprot' in args.db_loc.lower():
         dataset = 'fireprot'
         # some entries in FireProt do not have associated structures
-        db = db.dropna(subset='pdb_id')
+        db = db.dropna(subset=['pdb_id'])
         # get the first PDB from the list (others might be alternate structures)
         db['code'] = db['pdb_id'].apply(lambda x: x.split('|')[0])
         # assign a unique identifier for matching tables later on
@@ -179,6 +180,21 @@ def main(args):
 
                 # create a convenience link to the structure file
                 pdb_file = os.path.join(STRUCTURES_DIR, f'{code}_{chain}.pdb')
+
+                # create a convenience link to the alignment file
+                # note: this MSA (included in the repo) is already reduced
+                # to the context of interest and has no more than 90% identity
+                # between sequences and no less than 75% coverage per sequence
+                matching_files = glob.glob(
+                    os.path.join(args.alignments, f'{code}_*.a3m')
+                    )
+                assert len(matching_files) <= 1, \
+                    f"Expected one file, but found {len(matching_files)}"
+                if len(matching_files) == 0:
+                    print(f'Did not find an MSA for {code}')
+                    orig_msa = None
+                else:
+                    orig_msa = matching_files[0]
                 
                 # predicted mutant structures obtained from Pancotti et al.
                 # this will have to be placed here manually
@@ -199,7 +215,7 @@ def main(args):
                     'pdb_ungapped': pu, 'uid': code + '_' + str(pos) + mut, 
                     'uniprot_seq': uniprot_seq, 'window_start': window_start, 
                     'pdb_file': pdb_file,'mutant_pdb_file': mutant_pdb_file,
-                    'multimer': multimer, 
+                    'multimer': multimer, 'msa_file': orig_msa,
                     'tranception_dms': os.path.join(args.output_root,
                         'DMS_tranception', f'{code}_{chain}_{dataset}.csv'),
                 }}).T
@@ -342,10 +358,15 @@ if __name__=='__main__':
                     description = 'Preprocesses data from either s669 or \
                                    FireProtDB for downstream prediction'
                     )
-    parser.add_argument('--db_loc', help='location of the database csv file.' 
-                      +' Must contain the name of the database (s669/fireprot)')
+    parser.add_argument('--db_loc', help='location of raw database csv file.'\
+                      +' Must contain name of database (s669/fireprot)',
+                      default='./data/fireprotdb_results.csv')
     parser.add_argument('-o', '--output_root', 
-                        help='root of folder to store outputs')
+                        help='root of folder to store outputs',
+                        default='.')
+    parser.add_argument('-a', '--alignments',
+                        help='folder where redundancy-reduced alignments are',
+                        default='./data/msas')
     #parser.add_argument('-d', '--dataset', choices=['s669', 'fireprot'])
     parser.add_argument('--rosetta', action='store_true', 
         help='whether to get Rosetta offsets'
