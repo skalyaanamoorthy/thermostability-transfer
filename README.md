@@ -38,13 +38,14 @@ ProteinMPNN:
 
 `git clone https://github.com/dauparas/ProteinMPNN`
 	
-Note: ProteinMPNN directory will be used as input for ProteinMPNN scripts; it will need to be specify
+Note: ProteinMPNN directory will be used as input for ProteinMPNN scripts; it will need to be specified when calling the Python script (--mpnn_loc).
 
 Tranception:
 
 `https://github.com/OATML-Markslab/Tranception`
 
 Follow the instructions in the repo to get the Tranception_Large (parameters) binary and config. You do not need to the setup the conda environment.
+Again, you will need to specify the location of the repository (--tranception_loc) and the model weights (--checkpoint).
 
 ## Preprocessing Setup
 
