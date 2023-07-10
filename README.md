@@ -14,7 +14,7 @@ Install Pytorch according to the instructions (you might also need to install cu
 
 torch-* must be installed after torch:
 
-`pip install torch-cluster torch-geometric torch-scatter torch-sparse torch-spline-conv`
+`pip install torch-geometric` %torch-cluster torch-scatter torch-sparse torch-spline-conv
 
 Now you can install the requirements with no additional dependencies:
 
@@ -38,9 +38,27 @@ You will need the following for preprocessing:
 
 Modeller: https://salilab.org/modeller/download_installation.html
 
--make sure it is accessible in the virtual environment
-- e.g. follow installation instructions, can add pythonpath and ld_library path to activate script
--you will need a license to use it (free for academic use)
+(you will need a license, which is free for academic use)
+
+To make modeller visible to the Python scripts, you can append the following to your ./pslm/bin/activate file:
+
+`if [ -z $PYTHONPATH ]
+then
+    export PYTHONPATH="/usr/lib/modeller10.4/modlib/:/usr/lib/modeller10.4/lib/x86_64-intel8/python3.3/"
+else
+    export PYTHONPATH="/usr/lib/modeller10.4/modlib/:/usr/lib/modeller10.4/lib/x86_64-intel8/python3.3:${PYTHONPATH}:"
+fi
+
+if [ -z $LD_LIBRARY_PATH ]
+then
+    export LD_LIBRARY_PATH="/usr/lib/modeller10.4/lib/x86_64-intel8"
+else
+    export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/lib/modeller10.4/lib/x86_64-intel8"
+fi`
+
+Ensuring to replace the modeller version and system architecture as required. Then make sure to restart the virtualenv:
+
+`source pslm/bin/activate`
 
 You will need the following for computing features:
 
@@ -62,7 +80,7 @@ To run inference on either FireProtDB or S669/S461 you will need to preprocess t
 
 `python3 preprocessing/preprocess.py --db_loc ./data/fireprotdb_results.csv -o .`
 
-Note that you will also have to do this for S669.
+It is expected to see the message '507 observations lost from the original dataset for FireProtDB. Note that you will also have to do this for S669.
 
 Then, you can run any of the inference scripts in inference scripts. You can use the template calls from cluster_inference_scripts in order to determine the template for calling each method's wrapper script. For instance, to run ProteinMPNN with 0.2 Angstrom backbone noise on FireProtDB:
 
