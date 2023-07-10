@@ -69,6 +69,9 @@ def main(args):
         dataset = 's669'
         db['code'] = db['Protein'].str[0:4]
         db['chain'] = db['Protein'].str[-1]
+        # correct one incorrect record (authors used a modified structure)
+        db.loc[(db['Mut_seq']=='Y200H') & (db['code']=='3L15'), 'Mut_seq'] = \
+            'Y189H'
         # assign a unique identifier for matching tables later on
         db['uid'] = db['Protein'].str[:4] + '_' + db['Mut_seq'].str[1:]
     else:
@@ -122,6 +125,29 @@ def main(args):
                 SEQUENCES_DIR, WINDOWS_DIR, ALIGNMENTS_DIR, uniprot_seq
                 )
 
+        # create a convenience link to the alignment file
+        # note: this MSA (included in the repo) is already reduced
+        # to the context of interest and has no more than 90% identity
+        # between sequences and no less than 75% coverage per sequence
+        matching_files = glob.glob(
+            os.path.join(args.alignments, f'{code}_*.a3m')
+            )
+        assert len(matching_files) <= 1, \
+            f"Expected one file, but found {len(matching_files)}"
+        if len(matching_files) == 0:
+            exp = "un" if code not in ["1DXX", "1D5G", "1TIT", "1JL9"] else ""
+            print(f'Did not find an MSA for {code}. This is {exp}expected')
+            orig_msa = None
+        else:
+            orig_msa = matching_files[0]
+
+        # need the original chain to refer to predicted structures  
+        chain_orig = orig_chains[code] \
+            if code in orig_chains.keys() else chain
+
+        # create a convenience link to the structure file
+        pdb_file = os.path.join(STRUCTURES_DIR, f'{code}_{chain}.pdb')
+
         # now we process and validate individual mutations from the database
         for name, _ in group.groupby(
             ['wild_type', 'position', 'mutation']
@@ -174,28 +200,6 @@ def main(args):
                     code, chain, pos, mut, pu, ou, SEQUENCES_DIR
                     )
 
-                # need the original chain to refer to predicted structures  
-                chain_orig = orig_chains[code] \
-                    if code in orig_chains.keys() else chain
-
-                # create a convenience link to the structure file
-                pdb_file = os.path.join(STRUCTURES_DIR, f'{code}_{chain}.pdb')
-
-                # create a convenience link to the alignment file
-                # note: this MSA (included in the repo) is already reduced
-                # to the context of interest and has no more than 90% identity
-                # between sequences and no less than 75% coverage per sequence
-                matching_files = glob.glob(
-                    os.path.join(args.alignments, f'{code}_*.a3m')
-                    )
-                assert len(matching_files) <= 1, \
-                    f"Expected one file, but found {len(matching_files)}"
-                if len(matching_files) == 0:
-                    print(f'Did not find an MSA for {code}')
-                    orig_msa = None
-                else:
-                    orig_msa = matching_files[0]
-                
                 # predicted mutant structures obtained from Pancotti et al.
                 # this will have to be placed here manually
                 mutant_pdb_file = os.path.join(
@@ -250,6 +254,7 @@ def main(args):
     out = db.merge(hit, on=['uid'])
     # check how many mutants could not be processed or validated
     print('Unique mutants lost from original dataset:', len(db)-len(out))
+    #print(set(out['uid']).difference(set(db['uid'])))
 
     # at this point, we have all the information about the mapping between 
     # sequence and structure, and we have validated the mutant sequences.
@@ -306,19 +311,6 @@ def main(args):
             on=['code', 'chain', 'position', 'mutation'], 
             how='left'
             )
-
-    # convenience argument for adding MSA file paths to this dataframe
-    # needed for feature analysis
-    #if args.msas:
-    #    msas = pd.read_csv(os.path.join(args.output_root, args.msas))
-    #    msas = msas.loc[
-    #        msas['dataset']==dataset].drop(
-    #            'Unnamed: 0', axis=1
-    #            )
-    #    msas['msa_filename'] = msas['msa_filename'].apply(
-    #        lambda x: os.path.join(args.output_root, x)
-    #    )
-    #    out = out.merge(msas, on=['code', 'chain'], how='left')
         
     out = out.set_index('uid')
     
@@ -358,25 +350,26 @@ if __name__=='__main__':
                     description = 'Preprocesses data from either s669 or \
                                    FireProtDB for downstream prediction'
                     )
-    parser.add_argument('--db_loc', help='location of raw database csv file.'\
-                      +' Must contain name of database (s669/fireprot)',
-                      default='./data/fireprotdb_results.csv')
+    parser.add_argument('--dataset', help='name of database (s669/fireprot), \
+                        assuming you are in the root of the repository',
+                      default='fireprot')
     parser.add_argument('-o', '--output_root', 
                         help='root of folder to store outputs',
                         default='.')
     parser.add_argument('-a', '--alignments',
                         help='folder where redundancy-reduced alignments are',
                         default='./data/msas')
-    #parser.add_argument('-d', '--dataset', choices=['s669', 'fireprot'])
     parser.add_argument('--rosetta', action='store_true', 
         help='whether to get Rosetta offsets'
             +' (only use when Rosetta relax has been run')
     parser.add_argument('--robetta', action='store_true', 
         help='whether to get offsets from (Robetta) predicted mutant structures'
             +' only use when Rosetta relax has been run on Robetta structures')
-    #parser.add_argument('--msas',
-    #    help='path to a file associating pdb codes with msa file locations'
-    #        +'(relative path from output root)')
 
     args = parser.parse_args()
+    if args.dataset.lower() in ['fireprot', 'fireprotdb']:
+        args.db_loc = './data/fireprotdb_results.csv'
+    elif args.dataset.lower() in ['s669', 's461']:
+        args.db_loc = './data/Data_s669_with_predictions.csv'
+
     main(args)

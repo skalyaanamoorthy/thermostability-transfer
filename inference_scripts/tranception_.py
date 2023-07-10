@@ -130,7 +130,7 @@ if __name__ == '__main__':
             help='location of the stored predictions database',
     )
     parser.add_argument(
-            '--tranception_dir', type=str,
+            '--tranception_loc', type=str,
             help='location of the tranception repository',
     )
 

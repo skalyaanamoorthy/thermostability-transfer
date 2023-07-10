@@ -439,7 +439,7 @@ def get_offsets(wt, pos, dataset, alignment_df):
         idx_mut = alignment_df.loc[
             alignment_df['pdb_gapped']!='-'].head(pos).tail(1).index.item()
     
-    # case where the PDB is mutated relative to UniProt
+    # case where the PDB is mutated relative to UniProt (or has gap)
     if alignment_df.loc[idx_mut, 'pdb_gapped'] != wt:
         print(f'Could not match wild-type residue {wt} to position {pos}')
 
