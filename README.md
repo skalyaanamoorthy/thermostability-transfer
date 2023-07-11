@@ -76,13 +76,15 @@ To run inference on either FireProtDB or S669/S461 you will need to preprocess t
 `python3 preprocessing/preprocess.py --dataset fireprotdb`
 
 Note that the output dataframe `./data/fireprot_mapped.csv` is already generated, but the other files are not prepared.
-It is expected to see the message '507 observations lost from the original dataset' for FireProtDB. Note that you will also have to do this for S669.
+It is expected to see the message '507 observations lost from the original dataset' for FireProtDB. Note that you will also have to do this for S669. For inverse/reversion mutations on S669, you will need the predicted mutant structures, which we obtained from the authors (thank you, Drs. Birolo and Fariselli): https://academic.oup.com/bib/article/23/2/bbab555/6502552 . Place these in the folder structures_mut at the root level of the repository and run `preprocessing.py` with `--robetta` to parse these as well.
 
 ## Running Inference
 
 Then, you can run any of the inference scripts in inference scripts. You can use the template calls from cluster_inference_scripts in order to determine the template for calling each method's wrapper script. For instance, to run ProteinMPNN with 0.2 Angstrom backbone noise on FireProtDB:
 
 `python inference_scripts/mpnn.py --db_location 'data/fireprot_mapped.csv' --output 'data/fireprot_mapped_preds.csv' --mpnn_loc ~/software/ProteinMPNN --noise '20'`
+
+To run inference of inverse/reversion mutations for structural methods you will need the predicted mutants as stated above, and you will have to use the _inv versions of each structural method.
 
 Note that ProteinMPNN and Tranception require the location where the github repository was installed as arguments.
 
