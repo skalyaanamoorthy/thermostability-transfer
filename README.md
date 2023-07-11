@@ -42,10 +42,16 @@ Note: ProteinMPNN directory will be used as input for ProteinMPNN scripts; it wi
 
 Tranception:
 
-`https://github.com/OATML-Markslab/Tranception`
+`git clone https://github.com/OATML-Markslab/Tranception`
 
 Follow the instructions in the repo to get the Tranception_Large (parameters) binary and config. You do not need to the setup the conda environment.
 Again, you will need to specify the location of the repository (--tranception_loc) and the model weights (--checkpoint).
+
+KORPM:
+
+`git clone https://github.com/chaconlab/korpm`
+
+Like the above methods, there is a wrapper script in inference_scripts where you will need to specify the installation directory with the argument --korpm_loc.
 
 ## Preprocessing Setup
 
