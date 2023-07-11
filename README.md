@@ -76,7 +76,7 @@ To run inference on either FireProtDB or S669/S461 you will need to preprocess t
 `python3 preprocessing/preprocess.py --dataset fireprotdb`
 
 Note that the output dataframe `./data/fireprot_mapped.csv` is already generated, but the other files are not prepared.
-It is expected to see the message '507 observations lost from the original dataset' for FireProtDB. Note that you will also have to do this for S669. For inverse/reversion mutations on S669, you will need the predicted mutant structures, which we obtained from the authors (thank you, Drs. Birolo and Fariselli): https://academic.oup.com/bib/article/23/2/bbab555/6502552 . Place these in the folder structures_mut at the root level of the repository and run `preprocessing.py` with `--robetta` to parse these as well.
+It is expected to see the message '507 observations lost from the original dataset' for FireProtDB. Note that you will also have to do this for S669. S461 is a subset of S669, so you can call either dataset for the `--dataset` argument, and the same preprocessing will occur; the subset will be generated in the analysis notebook (see Analysis section). For inverse/reversion mutations on S669/461, you will need the predicted mutant structures, which we obtained from the authors (thank you, Drs. Birolo and Fariselli): https://academic.oup.com/bib/article/23/2/bbab555/6502552 . Place these in the folder structures_mut at the root level of the repository and run `preprocessing.py` with the flag `--inverse` to parse these as well. We also obtained the original data file Data_s669_with_predictions.csv from the Supplementary information of this paper, adjusting one record to accurately reflect the structure.
 
 ## Running Inference
 
