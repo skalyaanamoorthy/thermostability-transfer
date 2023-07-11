@@ -89,7 +89,7 @@ if __name__ == '__main__':
             description='Score sequences based on a given structure.'
     )
     parser.add_argument(
-            '--korpm_dir', type=str,
+            '--korpm_loc', type=str,
             help='location of the korpm installation',
     )
     parser.add_argument(
