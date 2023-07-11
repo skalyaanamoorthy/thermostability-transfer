@@ -4,6 +4,9 @@ predictions/
 sequences/
 structures/
 windows/
+DMS_Tranception/
+DMS_MSA/
+analysis_notebooks/features.ipynb
 preprocessing/__pycache__/
 data/msas/subsampled/
 data/msas/subsampled_original/
