@@ -20,7 +20,7 @@ Make a new virual environment:
 
 If you have a sufficient NVIDIA GPU (tested on 3090 and A100) you can make predictions with the deep learning models.
 
-Start by installing CUDA if you have not already: https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html
+Start by installing CUDA if you have not already: https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html. We have verified that the code works with the most recent version of CUDA at time of speaking, 12.2. This requires a nightly install of PyTorch. The code also works with CUDA 11.4, but you may find it challenging to install the older versions of CUDA and PyTorch.
 
 Then install Pytorch according to the instructions: https://pytorch.org/get-started/locally/
 
