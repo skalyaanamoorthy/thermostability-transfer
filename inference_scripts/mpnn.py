@@ -1,3 +1,5 @@
+# adapted from ProteinMPNN/protein_mpnn_utils.py
+
 import sys
 import os
 import warnings
@@ -15,17 +17,20 @@ import warnings
 warnings.filterwarnings('ignore')
 
 def read_csv_safe(file_path):
+    """When running ProteinMPNN in parallel, prevents overwriting"""
     lock_path = file_path + ".lock"
     with FileLock(lock_path):
         df = pd.read_csv(file_path)
     return df
 
 def write_csv_safe(df, file_path, mode='w', *args, **kwargs):
+    """When running ProteinMPNN in parallel, prevents overwriting"""
     lock_path = file_path + ".lock"
     with FileLock(lock_path):
         df.to_csv(file_path, mode=mode, *args, **kwargs)
 
 def make_tied_positions_for_homomers(pdb_dict_list):
+    """Causes identical sequences in a quaternary structure to have likelihoods influenced by each monomer"""
     my_dict = {}
     for result in pdb_dict_list:
         all_chain_list = sorted([item[-1:] for item in list(result) if item[:9]=='seq_chain']) #A, B, C, ...
@@ -66,18 +71,20 @@ def main(args):
     model.to(device)
     model.load_state_dict(checkpoint['model_state_dict'])
     model.eval()
-    print("Model loaded")
     pdbparser = PDBParser()
 
     df2 = df.groupby('uid').first()
-    logps = pd.DataFrame(index=df2.index,columns=[f'mpnn_{args.noise}_{str(args.bbnoise).replace(".", "")}_dir', f'runtime_mpnn_{args.noise}_{str(args.bbnoise).replace(".", "")}_dir'])
+    logps = pd.DataFrame(index=df2.index,columns=[
+        f'mpnn_{args.noise}_{str(args.bbnoise).replace(".", "")}_dir', 
+        f'runtime_mpnn_{args.noise}_{str(args.bbnoise).replace(".", "")}_dir'
+        ])
 
     with tqdm(total=len(df2)) as pbar:
         for code, group in df2.groupby('code'):
     
             drop_chains = []
-            # get chain sequences and remove chains of only heteroatoms (e.g. DNA)
 
+            # get chain sequences and remove chains of only heteroatoms (e.g. DNA)
             pdb_path = os.path.join(group['pdb_file'].head(1).item())
             structure = pdbparser.get_structure(code, pdb_path)
             for c in structure.get_chains():
@@ -90,7 +97,6 @@ def main(args):
             designed_chain_list = []
             fixed_chain_list = []
             target_chain = pdb_path.split('_')[-1].split('.')[0]
-            print(target_chain)
 
             # identify the target chain and sequence, adding it to the designed chains
             for c in structure.get_chains():
@@ -105,19 +111,16 @@ def main(args):
                 if c.id != target_chain:
                     candidate_seq = [r.resname for r in c]
                     candidate_seq = ''.join([d[res] if res in d.keys() else 'X' for res in candidate_seq])
-                    print(f'target_seq\n{target_seq}')
-                    print(f'candid_seq\n{candidate_seq}')
+                    #print(f'target_seq\n{target_seq}')
+                    #print(f'candid_seq\n{candidate_seq}')
                     if candidate_seq == target_seq:
                         designed_chain_list.append(c.id)
                         homomer += 1
                     elif c.id not in drop_chains:
                         fixed_chain_list.append(c.id)
             
-            if homomer > 1:
-                print('Detected identical sequences to target chain, homomer of', homomer)
-            
-            #print(designed_chain_list)
-            #print(fixed_chain_list)
+            #if homomer > 1:
+            #    print('Detected identical sequences to target chain, homomer of', homomer)
             
             chain_list = list(set(designed_chain_list + fixed_chain_list))
             
@@ -134,25 +137,21 @@ def main(args):
 
             pdb_dict_list = parse_PDB(pdb_path, input_chain_list=chain_list)
             dataset_valid = StructureDatasetPDB(pdb_dict_list, truncate=None, max_length=100000)
-            print('pdb_dict_list', pdb_dict_list)
+            #print('pdb_dict_list', pdb_dict_list)
 
             chain_id_dict = {}
-
-            #if not args.multimer:
-            #    designed_chain_list = [designed_chain_list[0]]
-            #    fixed_chain_list = []
             chain_id_dict[pdb_dict_list[0]['name']]= (designed_chain_list, fixed_chain_list)
 
-            print('designed chains:', designed_chain_list)
-            print('fixed chains:', fixed_chain_list)
+            #print('designed chains:', designed_chain_list)
+            #print('fixed chains:', fixed_chain_list)
             #print('given sequence:')
             #print(group['pdb_ungapped'].head(1).item())
-            print(chain_id_dict)
+            #print(chain_id_dict)
             
-            for chain in chain_list:
-                l = len(pdb_dict_list[0][f"seq_chain_{chain}"])
-                print(f"Length of chain {chain} is {l}")
-                print(pdb_dict_list[0][f"seq_chain_{chain}"])
+            #for chain in chain_list:
+            #    l = len(pdb_dict_list[0][f"seq_chain_{chain}"])
+            #    print(f"Length of chain {chain} is {l}")
+            #    print(pdb_dict_list[0][f"seq_chain_{chain}"])
 
             if homomer:
                 tied_positions_dict = make_tied_positions_for_homomers(pdb_dict_list)
@@ -192,6 +191,7 @@ def main(args):
                         # make the prediction
                         log_probs_native = model.forward(X, S, mask, chain_M*chain_M_pos, residue_idx, chain_encoding_all, randn, use_input_decoding_order=True, decoding_order=decoding_order)
 
+                        # compare log probabilities
                         logps.at[uid, f'mpnn_{args.noise}_{str(args.bbnoise).replace(".", "")}_dir'] = (log_probs_native[0][pos+oc][alphabet.find(mut)] -\
                             log_probs_native[0][pos+oc][alphabet.find(wt)]).item()
                         logps.at[uid, f'runtime_mpnn_{args.noise}_{str(args.bbnoise).replace(".", "")}_dir'] = time.time() - start
@@ -205,16 +205,22 @@ def main(args):
     
 if __name__ == "__main__":
         parser = argparse.ArgumentParser()
-        parser.add_argument('--db_location', type=str, default='./s669_mapped.csv')
-        parser.add_argument('--output', '-o', type=str, default='./s669_mapped_preds.csv')
-        parser.add_argument('--dataset', type=str, default='s669')
+        parser.add_argument('--db_location', type=str, default='./data/fireprot_mapped.csv')
+        parser.add_argument('--output', '-o', type=str, default='./data/fireprot_mapped_preds.csv')
         parser.add_argument('--noise', type=int, default=20)
         parser.add_argument('--bbnoise', type=float, default=0.00)
-        parser.add_argument('--mpnn_loc', type=str,default='/home/sareeves/projects/rrg-skal/sareeves/ProteinMPNN/vanilla_proteinmpnn')
+        parser.add_argument('--mpnn_loc', type=str,required=True)
 
         args = parser.parse_args()
         sys.path.append(args.mpnn_loc)
         from protein_mpnn_utils import tied_featurize, parse_PDB
         from protein_mpnn_utils import StructureDatasetPDB, ProteinMPNN
+
+        if 'fireprot' in args.db_location.lower():
+            args.dataset = 'fireprot'
+        elif 's669' in args.db_location.lower() or 's461' in args.db_location.lower():
+            args.dataset = 's669'
+        else:
+            raise AssertionError('--db_location must contain either "fireprot" or "s669" or "s461"')
 
         main(args)

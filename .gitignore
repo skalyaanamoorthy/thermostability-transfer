@@ -11,6 +11,10 @@ preprocessing/__pycache__/
 data/msas/subsampled/
 data/msas/subsampled_original/
 data/msas/unused/
+data/hit_*.csv
+data/miss_*.csv
 old_requirements/
 fresh/
 rosetta_predictions_old/
+inference_scripts/msa_transformer_preds.csv
+inference_scripts/neff.csv

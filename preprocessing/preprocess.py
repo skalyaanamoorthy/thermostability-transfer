@@ -221,7 +221,7 @@ def main(args):
                     'pdb_file': pdb_file,'mutant_pdb_file': mutant_pdb_file,
                     'multimer': multimer, 'msa_file': orig_msa,
                     'tranception_dms': os.path.join(args.output_root,
-                        'DMS_tranception', f'{code}_{chain}_{dataset}.csv'),
+                    'DMS_tranception', f'{code}_{chain}_{dataset}.csv'),
                 }}).T
 
                 # used for getting features in features.py
@@ -240,8 +240,13 @@ def main(args):
                     'ou': offset_up  
                 }}).T])
 
-    hit.to_csv(os.path.join(args.output_root, DATA_DIR, f'hit_{dataset}.csv'))
-    miss.to_csv(os.path.join(args.output_root, DATA_DIR, f'miss_{dataset}.csv'))
+    if args.verbose:
+        hit.to_csv(
+            os.path.join(args.output_root, DATA_DIR, f'hit_{dataset}.csv')
+            )
+        miss.to_csv(
+            os.path.join(args.output_root, DATA_DIR, f'miss_{dataset}.csv')
+            )
 
     if dataset == 'fireprot':
         db = db.drop(
@@ -266,7 +271,7 @@ def main(args):
     if args.rosetta:
         hit_rosetta = pd.DataFrame()
     # robetta is referring to the modelled structures for inverse mutations
-    if args.robetta:
+    if args.inverse:
         hit_robetta = pd.DataFrame()
 
     # iterate back through the output dataframe based on wt structure
@@ -290,7 +295,7 @@ def main(args):
             if offsets_rosetta is not None:
                 hit_rosetta = pd.concat([hit_rosetta, offsets_rosetta])
         # do the same for inverse structures
-        if args.robetta:
+        if args.inverse:
             offsets_robetta = utils.get_rosetta_mapping(
                 code, chain, group, dataset, 
                 SEQUENCES_DIR, PREDICTIONS_DIR, inverse=True
@@ -305,7 +310,7 @@ def main(args):
             on=['code', 'chain', 'position', 'mutation'], 
             how='left'
             )
-    if args.robetta:
+    if args.inverse:
         out = out.merge(
             hit_robetta, 
             on=['code', 'chain', 'position', 'mutation'], 
@@ -362,9 +367,11 @@ if __name__=='__main__':
     parser.add_argument('--rosetta', action='store_true', 
         help='whether to get Rosetta offsets'
             +' (only use when Rosetta relax has been run')
-    parser.add_argument('--robetta', action='store_true', 
+    parser.add_argument('--inverse', action='store_true', 
         help='whether to get offsets from (Robetta) predicted mutant structures'
             +' only use when Rosetta relax has been run on Robetta structures')
+    parser.add_argment('--verbose', action='store_true',
+        help='whether to save which mutations could not be parsed')
 
     args = parser.parse_args()
     if args.dataset.lower() in ['fireprot', 'fireprotdb']:
