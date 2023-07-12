@@ -12,9 +12,9 @@ module load python
 module load scipy-stack
 module load StdEnv/2020  gcc/9.3.0  cuda/11.4
 
-source ~/scratch/dl3/bin/activate
+source ../pslm/bin/activate
 
-if ! test -e './s669_mapped_preds.csv'; then cp './s669_mapped.csv' './s669_mapped_preds.csv'; fi
-python mpnn.py --db_location './s669_mapped.csv' --output './s669_mapped_preds.csv' --dataset 's669' --mpnn_loc ~/scratch/ProteinMPNN --noise '20' > 'logs/log_mpnn_s669.txt'
-if ! test -e './fireprot_mapped_preds.csv'; then cp './fireprot_mapped.csv' './fireprot_mapped_preds.csv'; fi
-python mpnn.py --db_location './fireprot_mapped.csv' --output './fireprot_mapped_preds.csv' --dataset 'fireprot' --mpnn_loc ~/scratch/ProteinMPNN --noise '20' > 'logs/log_mpnn_fireprot.txt'
+if ! test -e '../data/s669_mapped_preds.csv'; then cp '../data/s669_mapped.csv' '../data/s669_mapped_preds.csv'; fi
+python ../inference_scripts/mpnn.py --db_location '../data/s669_mapped.csv' --output '../data/s669_mapped_preds.csv' --dataset 's669' --mpnn_loc ~/software/ProteinMPNN --noise '20'
+if ! test -e '../data/fireprot_mapped_preds.csv'; then cp '../data/fireprot_mapped.csv' '../data/fireprot_mapped_preds.csv'; fi
+python ../inference_scripts/mpnn.py --db_location '../data/fireprot_mapped.csv' --output '../data/fireprot_mapped_preds.csv' --dataset 'fireprot' --mpnn_loc ~/software/ProteinMPNN --noise '20'

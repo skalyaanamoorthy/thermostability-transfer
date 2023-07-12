@@ -1,3 +1,0 @@
-Transferred model to GPU
-/home/sareeves/OneDrive/thermostability_transfer/data/msas/1A23_*_MSA.a3m
-[]

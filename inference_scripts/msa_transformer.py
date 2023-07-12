@@ -98,9 +98,6 @@ def score_sequences(args):
 
     with tqdm(total=len(df2['code'].unique())) as pbar:
         for code, group in df2.groupby('code'):
-            msas = os.path.join(args.alignments, 'subsampled/')
-            os.makedirs(msas, exist_ok=True)
-
             sequence = group.head(1)['uniprot_seq'].item()
             orig_msa = group.head(1)['msa_file'].item()
             subsample(orig_msa, nseqs=384, reps=5)
@@ -172,12 +169,11 @@ def main():
             '--db_location', type=str,
             help='location of the mapped database (file name should contain fireprot or s669)',
     )
-    parser.add_argument(
-            '--alignments', '-a', type=str,
-            help='directory where alignments are stored. There should be only\
-                one file matching the pattern CODE_*.a3m where CODE is the pdb\
-                id of the structure the alignment is based upon'
-    )
+    #parser.add_argument(
+    #        '--alignments', '-a', type=str,
+    #        help='directory where subsampled alignments should be stored.',
+    #        default='./data/msas/'
+    #)
     parser.add_argument(
             '--output', '-o', type=str,
             help='location of the database used to store predictions.\

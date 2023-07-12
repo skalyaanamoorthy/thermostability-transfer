@@ -10,6 +10,7 @@ click
 cmake
 contourpy
 cycler
+datasets
 debugpy
 decorator
 dill
@@ -83,6 +84,7 @@ torch-cluster
 tornado
 tqdm
 traitlets
+transformers
 types-PyYAML
 types-toml
 typing_extensions

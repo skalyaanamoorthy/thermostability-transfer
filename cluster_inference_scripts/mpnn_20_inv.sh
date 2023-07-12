@@ -12,10 +12,7 @@ module load python
 module load scipy-stack
 module load StdEnv/2020  gcc/9.3.0  cuda/11.4
 
-#source ~/projects/def-skal/sareeves/dl2/bin/activate
-source ~/scratch/dl3/bin/activate
+source ../pslm/bin/activate
 
-if ! test -e './s669_mapped_preds.csv'; then cp './s669_mapped.csv' './s669_mapped_preds.csv'; fi
-python mpnn_inv.py --db_location './s669_mapped.csv' --output './s669_mapped_preds.csv' --noise 20 --dataset 's669' > 'logs/log_mpnn_20_s669_inv.txt'
-#if ! test -e './fireprot_mapped_preds.csv'; then cp './fireprot_mapped.csv' './fireprot_mapped_preds.csv'; fi
-#python mpnn_wrapper_inv.py --db_location './fireprot_mapped.csv' --output './fireprot_mapped_preds.csv' --dataset 'fireprot' > 'logs/log_mpnn_fireprot_inv.txt'
+if ! test -e '../data/s669_mapped_preds.csv'; then cp '../data/s669_mapped.csv' '../data/s669_mapped_preds.csv'; fi
+python ../inference_scripts/mpnn_inv.py --db_location '../data/s669_mapped.csv' --output '../data/s669_mapped_preds.csv' --noise 20 --mpnn_loc ~/software/ProteinMPNN 

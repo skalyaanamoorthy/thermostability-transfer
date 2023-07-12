@@ -12,10 +12,9 @@ module load python
 module load scipy-stack
 module load StdEnv/2020  gcc/9.3.0  cuda/11.4
 
-#source ~/projects/def-skal/sareeves/dl2/bin/activate
-source ~/scratch/dl3/bin/activate
+source ../pslm/bin/activate
 
-if ! test -e './s669_mapped_preds.csv'; then cp './s669_mapped.csv' './s669_mapped_preds.csv'; fi
-python mif.py --db_location './s669_mapped.csv' --output './s669_mapped_preds.csv' --model 'mif' > './logs/log_mif_s669.txt'
-if ! test -e './fireprot_mapped_preds.csv'; then cp './fireprot_mapped.csv' './fireprot_mapped_preds.csv'; fi
-python mif.py --db_location './fireprot_mapped.csv' --output './fireprot_mapped_preds.csv' --model 'mif' > './logs/log_mif_fireprot.txt'
+if ! test -e '../data/s669_mapped_preds.csv'; then cp '../data/s669_mapped.csv' '../data/s669_mapped_preds.csv'; fi
+python ../inference_scripts/mif.py --db_location '../data/s669_mapped.csv' --output '../data/s669_mapped_preds.csv' --model 'mif'
+if ! test -e '../data/fireprot_mapped_preds.csv'; then cp '../data/fireprot_mapped.csv' '../data/fireprot_mapped_preds.csv'; fi
+python ../inference_scripts/mif.py --db_location '../data/fireprot_mapped.csv' --output '../data/fireprot_mapped_preds.csv' --model 'mif'

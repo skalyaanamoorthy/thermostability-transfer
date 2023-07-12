@@ -110,7 +110,7 @@ def score_sequence(args):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Tranception scoring')
-    parser.add_argument('--checkpoint', type=str, help='Path of Tranception model checkpoint')
+    parser.add_argument('--checkpoint', type=str, help='Path of Tranception model checkpoint', required=True)
     parser.add_argument('--model_framework', default='pytorch', type=str, help='Underlying framework [pytorch|JAX]')
     parser.add_argument('--batch_size_inference', default=20, type=int, help='Batch size for inference')
     parser.add_argument('--output_scores_folder', default='./', type=str, help='Name of folder to write model scores to')
