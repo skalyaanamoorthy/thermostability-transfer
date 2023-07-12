@@ -10,9 +10,9 @@ Clone the repository:
 
 `cd thermostability-transfer`
 
-Make a new virual environment:
+Make a new virual environment (tested with Python=3.8+):
 
-`virtualenv pslm -p python3.9`
+`virtualenv pslm`
 
 `source pslm/bin/activate`
 
@@ -20,7 +20,7 @@ Make a new virual environment:
 
 If you have a sufficient NVIDIA GPU (tested on 3090 and A100) you can make predictions with the deep learning models.
 
-Start by installing CUDA if you have not already: https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html. We have verified that the code works with the most recent version of CUDA at time of speaking, 12.2. This requires a nightly install of PyTorch. The code also works with CUDA 11.4, but you may find it challenging to install the older versions of CUDA and PyTorch.
+Start by installing CUDA if you have not already: https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html. At time of writing you will need to get CUDA 11.X in order to be able to install the torch-* requirements.
 
 Then install Pytorch according to the instructions: https://pytorch.org/get-started/locally/
 
@@ -109,7 +109,7 @@ OR
 
 Finally, you can run the following to compute the features. 
 
-`python3 preprocessing/compute_features.py`
+`python3 preprocessing/compute_features.py --alistat_loc YOUR_ALISTAT_INSTALLATION`
 
 It is expected that there will be some errors in computing features. AliStats might fail for large alignments if you do not have enough RAM. Remember that the features have been pre-computed for your convience as stated above, and any missing features can be handled by merging dataframes.
 
