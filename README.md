@@ -83,6 +83,7 @@ Then, you can run any of the inference scripts in inference scripts. You can use
 
 `python inference_scripts/mpnn.py --db_location 'data/fireprot_mapped.csv' --output 'data/fireprot_mapped_preds.csv' --mpnn_loc ~/software/ProteinMPNN --noise '20'`
 
+Note that ESM methods (ESM-1V, MSA-Transformer, ESM-IF) and MIF methods (MIF and MIF-ST) will require substantial storage space and network usage to download the model weights on their first run (especially ESM-1V).
 To run inference of inverse/reversion mutations for structural methods you will need the predicted mutants as stated above, and you will have to use the _inv versions of each structural method.
 
 Note that ProteinMPNN and Tranception require the location where the github repository was installed as arguments.
