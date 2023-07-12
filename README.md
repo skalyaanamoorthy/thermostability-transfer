@@ -20,9 +20,9 @@ Make a new virual environment (tested with Python=3.8+):
 
 If you have a sufficient NVIDIA GPU (tested on 3090 and A100) you can make predictions with the deep learning models.
 
-Start by installing CUDA if you have not already: https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html. At time of writing you will need to get CUDA 11.X in order to be able to install the torch-* requirements.
+Start by installing CUDA if you have not already: https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html. At time of writing you will need to get CUDA 11.X in order to be able to install the torch-* requirements. If you are on a cluster, make sure you have the cuda module loaded e.g. `module load cuda` as well as any compiler necessary e.g. `module load gcc`.
 
-Then install Pytorch according to the instructions: https://pytorch.org/get-started/locally/
+Then install Pytorch according to the instructions: https://pytorch.org/get-started/locally/ . In most cases, it will suffice to `pip install pytorch`.
 
 Now you can install the requirements:
 
@@ -61,8 +61,7 @@ You will need the following additional tools for preprocessing:
 
 Modeller (for repairing PDB structures): https://salilab.org/modeller/download_installation.html
 
-(you will need a license, which is free for academic use)
-
+You will need a license, which is free for academic use; follow the download page instructions to make sure it is specified. You can install with conda, but be sure the change the paths in the following script.
 To make modeller visible to the Python scripts, you can append to your `./pslm/bin/activate` file following the pattern shown in `convenience_scripts/append_modeller_paths.sh`:
 
 `sh convenience_scripts/append_modeller_paths.sh`
