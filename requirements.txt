@@ -40,7 +40,7 @@ multidict
 nest-asyncio
 networkx
 numba
-numpy
+numpy==1.21.0
 packaging
 pandas
 parso

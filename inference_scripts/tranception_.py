@@ -39,7 +39,7 @@ def score_sequence(args):
 
                 target_seq=group['uniprot_seq'].head(1).item()
                 DMS_file_name=group['tranception_dms'].head(1).item()
-                print(DMS_file_name)
+                #print(DMS_file_name)
 
                 DMS_id = DMS_file_name.split("/")[-1].split(".")[0]
 
@@ -66,7 +66,6 @@ def score_sequence(args):
                         model.cuda()
                 model.eval()
                
-                print('here')
                 DMS_data = pd.read_csv(DMS_file_name, low_memory=True)
                 all_scores = model.score_mutants(
                                                 DMS_data=DMS_data, 
@@ -76,7 +75,6 @@ def score_sequence(args):
                                                 num_workers=args.num_workers, 
                                                 indel_mode=False
                                                 )
-                print('here2')
             except Exception as e:
                 print('Skipping', code, chain)
                 print(e)
