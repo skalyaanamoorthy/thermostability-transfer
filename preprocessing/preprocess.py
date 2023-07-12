@@ -370,7 +370,7 @@ if __name__=='__main__':
     parser.add_argument('--inverse', action='store_true', 
         help='whether to get offsets from (Robetta) predicted mutant structures'
             +' only use when Rosetta relax has been run on Robetta structures')
-    parser.add_argment('--verbose', action='store_true',
+    parser.add_argument('--verbose', action='store_true',
         help='whether to save which mutations could not be parsed')
 
     args = parser.parse_args()

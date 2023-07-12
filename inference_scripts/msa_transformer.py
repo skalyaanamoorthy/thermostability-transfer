@@ -146,8 +146,8 @@ def score_sequences(args):
                             wt_encoded, mt_encoded = alphabet.get_idx(wt), alphabet.get_idx(mt)
                             score = token_probs[0, 1 + idx, mt_encoded] - token_probs[0, 1 + idx, wt_encoded]
 
-                            logps.at[uid, f'msa_{i+1}'] = score.item()
-                            logps.at[uid, f'runtime_msa_{i+1}'] = time.time() - start
+                            logps.at[uid, f'msa_{i+1}_dir'] = score.item()
+                            logps.at[uid, f'runtime_msa_{i+1}_dir'] = time.time() - start
                         except Exception as e:
                             print(e, code, wt, pos, mt)
                             logps.at[uid, f'msa_{i+1}_dir'] = np.nan
@@ -183,9 +183,6 @@ def main():
             help='location of the database used to store predictions.\
                   Should be a copy of the mapped database with additional cols'
     )
-    #parser.add_argument(
-    #        '--do_subsampling', action='store_true', help='whether to subsample the MSA down to 384',
-    #)
     args = parser.parse_args()
 
     score_sequences(args)
