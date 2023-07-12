@@ -1,8 +1,10 @@
+# Protein Sequence Likelihood Modelling
+
+This repository of for facilitating access to self-supervised deep learning models, which predict the likelihood of amino acids in their biochemical context, in order to make zero-shot predictions of thermostability measurements.
+
 ## General Setup
 
-We provide the processed predictions for FireProtDB and S461 in `./data/fireprot_mapped_preds.csv` and `./data/s461_mapped_preds.csv`, respectively.
-However, to reproduce the predictions you can follow the below sections for preprocessing and inference. We also provide the pre-extracted features
-for analysis in the corresponding `./data/{dataset}_mapped_feats.csv` files, but you can reproduce those according to the feature analysis section.
+We provide the processed predictions for FireProtDB and S461 in `./data/fireprot_mapped_preds.csv` and `./data/s461_mapped_preds.csv`, respectively. However, to reproduce the predictions you can follow the below sections for preprocessing and inference. We also provide the pre-extracted features for analysis in the corresponding `./data/{dataset}_mapped_feats.csv` files, but you can reproduce those according to the feature analysis section.
 
 Clone the repository:
 
