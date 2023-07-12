@@ -5,6 +5,7 @@ import argparse
 import json
 import time
 import pandas as pd
+import gc
 from tqdm import tqdm
 
 import torch
@@ -22,7 +23,7 @@ def score_sequence(args):
 
     model_name = args.checkpoint.split("/")[-1]
     
-    tokenizer = PreTrainedTokenizerFast(tokenizer_file=os.path.join(args.tranception_dir, "tranception/utils/tokenizers/Basic_tokenizer"),
+    tokenizer = PreTrainedTokenizerFast(tokenizer_file=os.path.join(args.tranception_loc, "tranception/utils/tokenizers/Basic_tokenizer"),
                                                 unk_token="[UNK]",
                                                 sep_token="[SEP]",
                                                 pad_token="[PAD]",
@@ -65,7 +66,8 @@ def score_sequence(args):
                         model.cuda()
                 model.eval()
                
-                DMS_data = pd.read_csv(DMS_file_name, low_memory=False)
+                print('here')
+                DMS_data = pd.read_csv(DMS_file_name, low_memory=True)
                 all_scores = model.score_mutants(
                                                 DMS_data=DMS_data, 
                                                 target_seq=target_seq, 
@@ -74,6 +76,7 @@ def score_sequence(args):
                                                 num_workers=args.num_workers, 
                                                 indel_mode=False
                                                 )
+                print('here2')
             except Exception as e:
                 print('Skipping', code, chain)
                 print(e)
@@ -119,12 +122,12 @@ if __name__ == '__main__':
             '--db_location', type=str,
             help='location of the mapped database (file name should contain fireprot or s669)',
     )
-    parser.add_argument(
-        '--alignments', '-a', type=str,
-        help='directory where alignments are stored. There should be only\
-            one file matching the pattern CODE_*.a3m where CODE is the pdb\
-            id of the structure the alignment is based upon'
-    )
+    #parser.add_argument(
+    #    '--alignments', '-a', type=str, default='./data/msas/',
+    #    help='directory where alignments are stored. There should be only\
+    #        one file matching the pattern CODE_*.a3m where CODE is the pdb\
+    #        id of the structure the alignment is based upon'
+    #)
     parser.add_argument(
             '--output', type=str,
             help='location of the stored predictions database',
@@ -132,15 +135,16 @@ if __name__ == '__main__':
     parser.add_argument(
             '--tranception_loc', type=str,
             help='location of the tranception repository',
+            required=True
     )
 
     args = parser.parse_args()
 
-    if not os.path.exists(args.tranception_dir):
+    if not os.path.exists(args.tranception_loc):
         print('Invalid Tranception directory! Please download the GitHub repo \
             and ensure the full path to the repository is provided')
 
-    sys.path.append(args.tranception_dir)
+    sys.path.append(args.tranception_loc)
     from transformers import PreTrainedTokenizerFast
     import tranception
     from tranception import config, model_pytorch

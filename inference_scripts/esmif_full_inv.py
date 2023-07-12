@@ -17,6 +17,10 @@ def score_singlechain_backbones(model, alphabet, args):
     df2 = df.groupby('uid').first()
     logps = pd.DataFrame(index=df2.index,columns=['esmif_monomer_full_inv', 'runtime_esmif_monomer_full_inv'])
 
+    # check if a GPU is available and if so, use it
+    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+    model = model.to(device)  # move the model to the specified device
+
     with tqdm(total=len(df2)) as pbar:
         for uid, row in df2.iterrows():
                 

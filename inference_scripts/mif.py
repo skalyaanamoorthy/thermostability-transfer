@@ -49,8 +49,8 @@ def score_backbones(args):
                 'C': coords[:, 2]
             }
 
-            print('Native sequence loaded from structure file:')
-            print(native_seq)
+            #print('Native sequence loaded from structure file:')
+            #print(native_seq)
 
             dist, omega, theta, phi = process_coords(coords)
 
@@ -64,7 +64,7 @@ def score_backbones(args):
                     oc = int(ou) * (1 if dataset == 'fireprot' else 0)  -1
                     
                     seq = row['pdb_ungapped']
-                    print(seq)
+                    #print(seq)
                     start = time.time()
                     assert_diff_by_one(native_seq, seq)
                     
@@ -81,7 +81,7 @@ def score_backbones(args):
                     connections = connections.to(device)
                     edge_mask = edge_mask.to(device)
                     logits = model(src, nodes, edges, connections, edge_mask, result='logits')
-                    logps.at[uid, args.model+'_new_dir'] = (logits[0][pos+oc][alphabet.index(mut)] - logits[0][pos+oc][alphabet.index(wt)]).item()
+                    logps.at[uid, args.model+'_dir'] = (logits[0][pos+oc][alphabet.index(mut)] - logits[0][pos+oc][alphabet.index(wt)]).item()
                 except Exception as e:
                     print(e)
                     print(code, chain)
@@ -123,8 +123,8 @@ def score_backbones_inverse(args):
                 }
 
                 dist, omega, theta, phi = process_coords(coords)
-                print('Mutant sequence loaded from structure file:')
-                print(mutant_seq)
+                #print('Mutant sequence loaded from structure file:')
+                #print(mutant_seq)
 
                 pos = row['position']
                 wt = row['wild_type']
@@ -134,7 +134,7 @@ def score_backbones_inverse(args):
                 oc = int(ou) * (1 if dataset == 'fireprot' else 0)  -1 -int(ro)
 
                 seq = row['pdb_ungapped'] #row['pdb_ungapped_fill_x']
-                print(seq)
+                #print(seq)
                 start = time.time()
                 #assert mutant_seq == seq, 'Provided sequence does not match structure'
 
