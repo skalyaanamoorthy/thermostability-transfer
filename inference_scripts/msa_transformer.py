@@ -104,7 +104,7 @@ def score_sequences(args):
 
             for i in range(5):
                 
-                msa = os.path.join(msas, orig_msa.split('/')[-1].replace('.a3m', f'_reduced_subsampled_{i}.a3m'))
+                msa = os.path.join(os.path.dirname(orig_msa), 'subsampled', orig_msa.split('/')[-1].replace('.a3m', f'_reduced_subsampled_{i}.a3m'))
                 print(msa)
                 if not os.path.exists(msa):
                     print(f'Only 1 subsampled alignment for {code}, skipping to next protein')
