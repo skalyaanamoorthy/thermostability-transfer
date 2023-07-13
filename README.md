@@ -1,6 +1,6 @@
 ## Protein Sequence Likelihood Modelling for Thermostability Prediction
 
-This repository of for facilitating access to self-supervised deep learning models, which predict the likelihood of amino acids in their biochemical context, in order to make zero-shot predictions of thermostability measurements.
+This repository is for facilitating access to self-supervised deep learning models, which predict the likelihood of amino acids in their biochemical context, in order to make zero-shot predictions of thermostability measurements.
 
 ## General Setup
 
