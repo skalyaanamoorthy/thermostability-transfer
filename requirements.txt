@@ -20,12 +20,13 @@ filelock
 fonttools
 frozenlist
 fsspec
-git+https://github.com/facebookresearch/esm.git
+git+https://github.com/facebookresearch/esm.git@2b369911bb5b4b0dda914521b9475cad1656b2ac
 googledrivedownloader
 idna
 importlib-resources
-ipywidgets
 iprogress
+ipykernel
+ipywidgets
 Jinja2
 joblib
 kiwisolver
@@ -42,7 +43,7 @@ networkx
 numba
 numpy==1.21.0
 packaging
-pandas
+pandas>=2.0
 parso
 pexpect
 pickleshare

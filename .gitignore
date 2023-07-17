@@ -20,7 +20,7 @@ inference_scripts/msa_transformer_preds.csv
 inference_scripts/neff.csv
 data/fireprot_mapped_preds.csv.lock
 data/s669_mapped_preds.csv.lock
-idata/fireprot_mapped_preds.copy
+data/fireprot_mapped_preds.copy
 status.txt
 diff.txt
 *pycache*
