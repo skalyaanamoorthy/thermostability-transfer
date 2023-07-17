@@ -36,7 +36,8 @@ def score_sequence(args):
             try:
                 chain = group['chain'].head(1).item()
                 if args.low_mem and code in ['1CEY', '6TQ3']:
-                    print('Skipping 6TQ3 which requires >64 GB VRAM')
+                    print(f'Skipping {code} which requires >64 GB VRAM')
+                    continue
                 print(f'Evaluating {code} {chain}')
 
                 target_seq=group['uniprot_seq'].head(1).item()

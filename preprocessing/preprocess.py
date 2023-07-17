@@ -114,6 +114,10 @@ def main(args):
         else:
             # in the FireProtDB, the UniProt sequence is provided
             uniprot_seq = group['sequence'].head(1).item()
+            with open(
+                os.path.join(SEQUENCES_DIR, 'fasta_up', f'{code}_{chain}.fa'), 
+            'w') as f:
+                f.write(f'>{code}_{chain}\n{uniprot_seq}')
         
         # get the pdb sequence corresponding to the entry
         chains = utils.extract_structure(
@@ -174,18 +178,21 @@ def main(args):
             # fireprot mutation labels correspond to uniprot entries; 
             # offset_up maps these to the pdb sequence
             if dataset == 'fireprot':
-                ou = offset_up
+                offset_pdb = offset_up
             # s669 mutation labels correspond to pdb entries; 
             # offset_up is used (in reverse) to map to uniprot
             elif dataset == 's669':
                 # no offset since we are operating in pdb coordinates
-                ou = 0
-                # still validate offset and ensure it correctly maps to uniprot
-                # the -1 converts to zero-based indexing
-                if uniprot_seq[int(pos) - 1 - offset_up] != wt:
-                    print(code, wt, pos, mut, 
-                    'uniprot wt does not match with provided mutation'
-                    ) # happens rarely when the structure is already mutated
+                offset_pdb = 0
+
+            # still validate offset and ensure it correctly maps to uniprot
+            # the -1 converts to zero-based indexing
+            if uniprot_seq[
+                int(pos) - 1 - (offset_up if dataset=='s669' else 0)
+                ] != wt:
+                print(code, wt, pos, mut, 
+                'uniprot wt does not match with provided mutation'
+                ) # happens rarely when the structure is already mutated
 
             # attempt to validate the offsets and hence ensure mutations are 
             # being assigned to the correct location
@@ -197,11 +204,12 @@ def main(args):
                 pu = pu.replace('Z', 'M')
                 
                 # validation setp
-                assert pu[int(pos) - 1 + ou] == wt, f'UniProt offset is {ou}'
+                assert pu[int(pos) - 1 + offset_pdb] == wt, \
+                    f'PDB/UniProt offset is {offset_pdb}'
 
                 # format the mutant sequence as required by each method
                 pu = utils.generate_mutant_sequences(
-                    code, chain, pos, mut, pu, ou, SEQUENCES_DIR
+                    code, chain, pos, mut, pu, offset_pdb, SEQUENCES_DIR
                     )
 
                 # predicted mutant structures obtained from Pancotti et al.
