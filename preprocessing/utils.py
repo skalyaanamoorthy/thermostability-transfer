@@ -20,8 +20,6 @@ def download_assembly(code, chain, BIO_ASSEMBLIES_DIR):
     Downloads the full (multimeric) biological assembly associated with a given
     PDB code as a gzip file.
     """
-        
-    print(f"Parsing {code}")
 
     # don't re-download (time-consuming)
     prot_file = f'{code}_{chain}.pdb1.gz'

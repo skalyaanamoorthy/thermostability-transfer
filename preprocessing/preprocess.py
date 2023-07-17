@@ -26,13 +26,15 @@ d = {'CYS': 'C', 'ASP': 'D', 'SER': 'S', 'GLN': 'Q', 'LYS': 'K', 'ILE': 'I',
 
 def main(args):
 
-    BIO_ASSEMBLIES_DIR = os.path.join(args.output_root, 'assemblies')
-    STRUCTURES_DIR = os.path.join(args.output_root, 'structures')
-    ALIGNMENTS_DIR = os.path.join(args.output_root, 'alignments')
-    SEQUENCES_DIR = os.path.join(args.output_root, 'sequences')
-    WINDOWS_DIR = os.path.join(args.output_root, 'windows')
-    PREDICTIONS_DIR = os.path.join(args.output_root, 'predictions')
-    DATA_DIR = os.path.join(args.output_root, 'data')
+    output_path = os.path.abspath(args.output_root)
+    print('Full path to outputs:', output_path)
+    BIO_ASSEMBLIES_DIR = os.path.join(output_path, 'assemblies')
+    STRUCTURES_DIR = os.path.join(output_path, 'structures')
+    ALIGNMENTS_DIR = os.path.join(output_path, 'alignments')
+    SEQUENCES_DIR = os.path.join(output_path, 'sequences')
+    WINDOWS_DIR = os.path.join(output_path, 'windows')
+    PREDICTIONS_DIR = os.path.join(output_path, 'predictions')
+    DATA_DIR = os.path.join(output_path, 'data')
 
     # first build a folder structure for organizing inputs and outputs.
     for folder in [BIO_ASSEMBLIES_DIR, STRUCTURES_DIR, ALIGNMENTS_DIR, 
@@ -40,8 +42,8 @@ def main(args):
                    os.path.join(SEQUENCES_DIR, 'fasta_wt'), 
                    os.path.join(SEQUENCES_DIR, 'fasta_mut'),
                    os.path.join(SEQUENCES_DIR, 'fasta_up'),
-                   os.path.join(args.output_root, 'DMS_tranception'),
-                   os.path.join(args.output_root, 'DMS_MSA')]:
+                   os.path.join(output_path, 'DMS_tranception'),
+                   os.path.join(output_path, 'DMS_MSA')]:
         os.makedirs(folder, exist_ok=True)
 
     # chains listed in databases do not always correspond to the biological
@@ -85,6 +87,8 @@ def main(args):
 
     # iterate through one PDB code at a time, e.g. all sharing the wt structure
     for code, group in db.groupby('code'):
+
+        print(f"Parsing {code}, {len(group['uid'].unique())} unique mutations")
 
         # chains listed in database do not always correspond to the assembly
         if code in wrong_chains:
@@ -135,11 +139,11 @@ def main(args):
         assert len(matching_files) <= 1, \
             f"Expected one file, but found {len(matching_files)}"
         if len(matching_files) == 0:
-            exp = "un" if code not in ["1DXX", "1D5G", "1TIT", "1JL9"] else ""
+            exp = "un" if code not in ["1DXX", "1TIT", "1JL9"] else ""
             print(f'Did not find an MSA for {code}. This is {exp}expected')
             orig_msa = None
         else:
-            orig_msa = matching_files[0]
+            orig_msa = os.path.abspath(matching_files[0])
 
         # need the original chain to refer to predicted structures  
         chain_orig = orig_chains[code] \
@@ -203,12 +207,12 @@ def main(args):
                 # predicted mutant structures obtained from Pancotti et al.
                 # this will have to be placed here manually
                 mutant_pdb_file = os.path.join(
-                    args.output_root, 'structures_mut',
+                    output_path, 'structures_mut',
                     f'{code.lower()}{chain_orig}_{wt}{pos}{mut}.pdb')
                 # difference in numbering for this one case
                 if code == '3L15':
                     mutant_pdb_file = os.path.join(
-                        args.output_root, 'structures_mut',
+                        output_path, 'structures_mut',
                         f'{code.lower()}{chain_orig}_{wt}200{mut}.pdb')
 
                 new_hit = pd.DataFrame({0: {
@@ -220,7 +224,7 @@ def main(args):
                     'uniprot_seq': uniprot_seq, 'window_start': window_start, 
                     'pdb_file': pdb_file,'mutant_pdb_file': mutant_pdb_file,
                     'multimer': multimer, 'msa_file': orig_msa,
-                    'tranception_dms': os.path.join(args.output_root,
+                    'tranception_dms': os.path.join(output_path,
                     'DMS_tranception', f'{code}_{chain}_{dataset}.csv'),
                 }}).T
 
@@ -242,10 +246,10 @@ def main(args):
 
     if args.verbose:
         hit.to_csv(
-            os.path.join(args.output_root, DATA_DIR, f'hit_{dataset}.csv')
+            os.path.join(output_path, DATA_DIR, f'hit_{dataset}.csv')
             )
         miss.to_csv(
-            os.path.join(args.output_root, DATA_DIR, f'miss_{dataset}.csv')
+            os.path.join(output_path, DATA_DIR, f'miss_{dataset}.csv')
             )
 
     if dataset == 'fireprot':
@@ -282,7 +286,7 @@ def main(args):
         # save the data in a method specific directory in the output_root 
         # e.g. DMS_MSA for MSA transformer
         utils.save_formatted_data(
-            code, chain, group, dataset, args.output_root
+            code, chain, group, dataset, output_path
             )
         
         # make sure Rosetta's parsing doesn't mess up the alignment
@@ -320,7 +324,7 @@ def main(args):
     out = out.set_index('uid')
     
     # this is the main input file for all PSLMs
-    out.to_csv(os.path.join(args.output_root, DATA_DIR, 
+    out.to_csv(os.path.join(output_path, DATA_DIR, 
         f'{dataset}_mapped.csv'))
 
     grouped = out.groupby('uid').first()[
@@ -333,7 +337,7 @@ def main(args):
         grouped['offset_rosetta'] = \
             grouped['offset_rosetta'].fillna(0).astype(int)
     grouped.to_csv(
-        os.path.join(args.output_root, DATA_DIR,
+        os.path.join(output_path, DATA_DIR,
             f'{dataset}_unique_muts_offsets.csv')
             )
 
@@ -342,7 +346,7 @@ def main(args):
     # used to index individual rows of the dataframe for running Rosetta
     # relaxation in parallel
     with open(os.path.join(
-        args.output_root, DATA_DIR, f'{dataset}_rosetta_indices.txt'
+        output_path, DATA_DIR, f'{dataset}_rosetta_indices.txt'
         ), 'w') as f:
         inds = ','.join(grouped.reset_index(drop=True).reset_index()\
             .groupby(['code', 'chain']).first()['index'].astype(str))

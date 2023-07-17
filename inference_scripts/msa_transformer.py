@@ -56,27 +56,25 @@ def subsample(infile, nseqs, reps):
                 align.write_a3m(seqs, open(outfile, 'w'))
 
 
-#def remove_insertions(sequence: str) -> str:
-#    """ 
-#    Removes any insertions into the sequence. Needed to load aligned sequences 
-#    in an MSA. 
-#    """
-#    # This is an efficient way to delete lowercase characters and insertion characters from a string
-#    deletekeys = dict.fromkeys(string.ascii_lowercase)
-#    deletekeys["."] = None
-#    deletekeys["*"] = None
-#    translation = str.maketrans(deletekeys)
-#    return sequence.translate(translation)
-
-
-def read_msa(filename: str, nseq: int, start: int, end: int):
+def remove_insertions(sequence: str) -> str:
     """ 
-    Reads the first nseq sequences from an MSA file, automatically removes 
-    insertions, and slices from the start to the end column. The input file must 
-    be in a3m format (although we use the SeqIO fasta parser) for 
-    remove_insertions to work properly.
+    Removes any insertions into the sequence. Needed to load aligned sequences in an MSA. 
     """
-    msa = [(record.description, str(record.seq[start:end])) #record.seq[start:end]
+    # This is an efficient way to delete lowercase characters and insertion characters from a string
+    deletekeys = dict.fromkeys(string.ascii_lowercase)
+    deletekeys["."] = None
+    deletekeys["*"] = None
+    translation = str.maketrans(deletekeys)
+    return sequence.translate(translation)
+
+
+def read_msa(filename: str, nseq: int) -> List[Tuple[str, str]]:
+    """ 
+    Reads the first nseq sequences from an MSA file, automatically removes insertions.      
+    The input file must be in a3m format (although we use the SeqIO fasta parser)
+    for remove_insertions to work properly.
+    """
+    msa = [(record.description, remove_insertions(str(record.seq)))
             for record in itertools.islice(SeqIO.parse(filename, "fasta"), nseq)
           ]
     return msa
@@ -98,9 +96,14 @@ def score_sequences(args):
 
     with tqdm(total=len(df2['code'].unique())) as pbar:
         for code, group in df2.groupby('code'):
+            print(code)
             sequence = group.head(1)['uniprot_seq'].item()
             orig_msa = group.head(1)['msa_file'].item()
-            subsample(orig_msa, nseqs=384, reps=5)
+            try:
+                subsample(orig_msa, nseqs=384, reps=5)
+            except TypeError:
+                print('Skipping', code, ', no alignment found')
+                continue
 
             for i in range(5):
                 
@@ -127,7 +130,7 @@ def score_sequences(args):
 
                             batch_converter = alphabet.get_batch_converter()
                             # msas in repo have already been reduced
-                            data = [read_msa(msa, 384, ws, ws+1022)]
+                            data = [read_msa(msa, 384)]
                             batch_labels, batch_strs, batch_tokens = batch_converter(data)
 
                             batch_tokens_masked = batch_tokens.clone()

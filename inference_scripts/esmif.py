@@ -21,11 +21,11 @@ def score_singlechain_backbones(model, alphabet, args):
     print('Loading data and running in singlechain mode...')
     df = pd.read_csv(args.db_location, index_col=0).reset_index()
     df2 = df.groupby('uid').first()
-    logps = pd.DataFrame(index=df2.index,columns=[f'esmif_monomer_full{"_masked" if args.masked else "_"}dir', f'runtime_esmif_monomer_full{"_masked" if args.masked else "_"}dir'])
+    logps = pd.DataFrame(index=df2.index,columns=[f'esmif_monomer{"_masked" if args.masked else "_"}dir', f'runtime_esmif_monomer{"_masked" if args.masked else "_"}dir'])
     dataset = 'fireprot' if 'fireprot' in args.db_location else 's669'
 
     # check if a GPU is available and if so, use it
-    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+    device = args.device if torch.cuda.is_available() else 'cpu'
     model = model.to(device)  # move the model to the specified device
 
     with tqdm(total=len(df2)) as pbar:
@@ -60,13 +60,13 @@ def score_singlechain_backbones(model, alphabet, args):
                                     masked_coords[pos+oc] = np.inf
                                 ll_mut, _ = esm.inverse_folding.util.score_sequence(
                                         model, alphabet, masked_coords, str(seq))
-                                logps.at[uid, f'esmif_monomer_full{"_masked" if args.masked else "_"}dir'] = ll_mut - ll_wt
-                                logps.at[uid, f'pll_esmif_monomer_full{"_masked" if args.masked else "_"}dir'] = np.exp(-ll_wt)
+                                logps.at[uid, f'esmif_monomer{"_masked" if args.masked else "_"}dir'] = ll_mut - ll_wt
+                                logps.at[uid, f'pll_esmif_monomer{"_masked" if args.masked else "_"}dir'] = np.exp(-ll_wt)
                         except Exception as e:
                                 print(e)
                                 print(pdb_file, chain)
-                                logps.at[uid, f'esmif_monomer_full{"_masked" if args.masked else "_"}dir'] = np.nan
-                        logps.at[uid, f'runtime_esmif_monomer_full{"_masked" if args.masked else "_"}dir'] = time.time() - start
+                                logps.at[uid, f'esmif_monomer{"_masked" if args.masked else "_"}dir'] = np.nan
+                        logps.at[uid, f'runtime_esmif_monomer{"_masked" if args.masked else "_"}dir'] = time.time() - start
                         pbar.update(1)
         
         # uid must be in the index col 0
@@ -80,11 +80,11 @@ def score_multichain_backbones(model, alphabet, args):
     print('Loading data and running in multichain mode...')
     df = pd.read_csv(args.db_location, index_col=0).reset_index()
     df2 = df.groupby('uid').first()
-    logps = pd.DataFrame(index=df2.index,columns=[f'esmif_multimer_full{"_masked" if args.masked else "_"}dir', f'runtime_esmif_multimer_full{"_masked" if args.masked else "_"}dir'])
+    logps = pd.DataFrame(index=df2.index,columns=[f'esmif_multimer{"_masked" if args.masked else "_"}dir', f'runtime_esmif_multimer{"_masked" if args.masked else "_"}dir'])
     dataset = 'fireprot' if 'fireprot' in args.db_location else 's669' 
 
     # check if a GPU is available and if so, use it
-    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+    device = args.device if torch.cuda.is_available() else 'cpu'
     model = model.to(device)  # move the model to the specified device
 
     with tqdm(total=len(df2)) as pbar:
@@ -94,7 +94,13 @@ def score_multichain_backbones(model, alphabet, args):
                 code = group['code'].head(1).item()
                 chain = group['chain'].head(1).item()
 
-                #print(f'Evaluating {code} {chain}')
+                if code == '1AON' and device == 'cuda:0':
+                        print('Skipping 1AON which requires ~53 GB VRAM')
+                        continue
+                elif code != '1AON' and device == 'cpu':
+                        continue
+
+                print(f'Evaluating {code} {chain}')
 
                 structure = esm.inverse_folding.util.load_structure(pdb_file)
                 coords, native_seqs = esm.inverse_folding.multichain_util.extract_coords_from_complex(structure)
@@ -126,13 +132,13 @@ def score_multichain_backbones(model, alphabet, args):
                                 start = time.time()
                                 ll_mut, _ = esm.inverse_folding.multichain_util.score_sequence_in_complex(
                                         model, alphabet, masked_coords, target_chain_id, str(seq))
-                                logps.at[uid, f'esmif_multimer_full{"_masked" if args.masked else "_"}dir'] = ll_mut - ll_wt
-                                logps.at[uid, f'pll_esmif_multimer_full{"_masked" if args.masked else "_"}dir'] = np.exp(-ll_wt)
+                                logps.at[uid, f'esmif_multimer{"_masked" if args.masked else "_"}dir'] = ll_mut - ll_wt
+                                logps.at[uid, f'pll_esmif_multimer{"_masked" if args.masked else "_"}dir'] = np.exp(-ll_wt)
                         except Exception as e:
                                 print(e)
                                 print(pdb_file, chain)
-                                logps.at[uid, f'esmif_multimer_full{"_masked" if args.masked else "_"}dir'] = np.nan
-                        logps.at[uid, f'runtime_esmif_multimer_full{"_masked" if args.masked else "_"}dir'] = time.time() - start
+                                logps.at[uid, f'esmif_multimer{"_masked" if args.masked else "_"}dir'] = np.nan
+                        logps.at[uid, f'runtime_esmif_multimer{"_masked" if args.masked else "_"}dir'] = time.time() - start
                         pbar.update(1)
         
         df = pd.read_csv(args.output, index_col=0)
@@ -163,6 +169,9 @@ def main():
     parser.add_argument(
             '--masked', action='store_true', default=False,
             help='whether to mask the coordinates at the mutated position'
+    )
+    parser.add_argument(
+            '--device', default='cuda:0', help='cpu or cuda:0 (GPU)'
     )
     args = parser.parse_args()
 

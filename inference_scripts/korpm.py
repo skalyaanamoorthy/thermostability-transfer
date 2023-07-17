@@ -50,24 +50,24 @@ def main(args):
         exit()
 
     db.to_csv(
-        os.path.join(args.korpm_dir, f'{dataset}_korpm.csv'), 
+        os.path.join(args.korpm_loc, f'{dataset}_korpm.csv'), 
         header=False, index=False, sep=' '
         )
 
     korpm_input = dataset+'_korpm.csv'
     korpm_output = dataset+'_korpm_preds.txt'
 
-    cmd = f"{os.path.join(args.korpm_dir, 'sbg', 'bin', 'korpm')}" \
-          f" {os.path.join(args.korpm_dir, korpm_input)}" \
+    cmd = f"{os.path.join(args.korpm_loc, 'sbg', 'bin', 'korpm')}" \
+          f" {os.path.join(args.korpm_loc, korpm_input)}" \
           f" --dir {args.structures_dir} --score_file " \
-          f" {os.path.join(args.korpm_dir, 'pot', 'korp6Dv1.bin')}" \
-          f" -o {os.path.join(args.korpm_dir, korpm_output)}" 
+          f" {os.path.join(args.korpm_loc, 'pot', 'korp6Dv1.bin')}" \
+          f" -o {os.path.join(args.korpm_loc, korpm_output)}" 
 
     print(cmd)
     os.system(cmd)
 
     korpm_preds = pd.read_csv(
-        os.path.join(args.korpm_dir, f'{dataset}_korpm_preds.txt'), 
+        os.path.join(args.korpm_loc, f'{dataset}_korpm_preds.txt'), 
         sep='\s+', header=None
         )
     korpm_preds.columns = [
@@ -77,11 +77,12 @@ def main(args):
     korpm_preds = db.reset_index().merge(
         korpm_preds, on=['korpm_mut', 'korpm_struct']
         ).set_index('uid').drop_duplicates()
+    korpm_preds = korpm_preds[[
+        f'korpm{"_dir" if "inv" not in dataset else "_inv"}'
+        ]]
 
     preds_db = pd.read_csv(args.output, index_col=0)
-    preds_db = preds_db.join(
-        korpm_preds[f'korpm{"_dir" if "inv" not in dataset else "_inv"}']
-        )
+    preds_db = korpm_preds.combine_first(preds_db)
     preds_db.to_csv(args.output)
 
 if __name__ == '__main__':
@@ -89,16 +90,16 @@ if __name__ == '__main__':
             description='Score sequences based on a given structure.'
     )
     parser.add_argument(
-            '--korpm_loc', type=str,
+            '--korpm_loc', type=str, required=True,
             help='location of the korpm installation',
     )
     parser.add_argument(
-            '--structures_dir', type=str,
+            '--structures_dir', type=str, default='./structures/',
             help='location of preprocessed structures from preprocess.py'
     )
     parser.add_argument(
-            '--db_location', type=str,
-            help='location of the mapped database (db/db)_mapped.csv',
+            '--db_location', type=str, default='./data/fireprot_mapped.csv',
+            help='location of the mapped database (fireprot/s669)_mapped.csv',
     )
     parser.add_argument(
             '--output', '-o', type=str,

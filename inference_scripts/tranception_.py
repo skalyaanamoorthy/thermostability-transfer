@@ -35,6 +35,8 @@ def score_sequence(args):
             start = time.time()
             try:
                 chain = group['chain'].head(1).item()
+                if args.low_mem and code in ['1CEY', '6TQ3']:
+                    print('Skipping 6TQ3 which requires >64 GB VRAM')
                 print(f'Evaluating {code} {chain}')
 
                 target_seq=group['uniprot_seq'].head(1).item()
@@ -106,7 +108,7 @@ def score_sequence(args):
 
 
 if __name__ == '__main__':
-
+    # original args
     parser = argparse.ArgumentParser(description='Tranception scoring')
     parser.add_argument('--checkpoint', type=str, help='Path of Tranception model checkpoint', required=True)
     parser.add_argument('--model_framework', default='pytorch', type=str, help='Underlying framework [pytorch|JAX]')
@@ -115,7 +117,8 @@ if __name__ == '__main__':
     parser.add_argument('--scoring_window', default="optimal", type=str, help='Sequence window selection mode (when sequence length longer than model context size)')
     parser.add_argument('--retrieval_inference_weight', default=0.6, type=float, help='Coefficient (alpha) used when aggregating autoregressive transformer and retrieval')
     parser.add_argument('--num_workers', default=10, type=int, help='Number of workers for model scoring data loader')
-
+    
+    # added args
     parser.add_argument(
             '--db_location', type=str,
             help='location of the mapped database (file name should contain fireprot or s669)',
@@ -134,6 +137,11 @@ if __name__ == '__main__':
             '--tranception_loc', type=str,
             help='location of the tranception repository',
             required=True
+    )
+    parser.add_argument(
+        '--low_mem', action='store_true', 
+        help='Skip certain proteins which have large MSAs and require more \
+            than 64GB RAM'
     )
 
     args = parser.parse_args()
