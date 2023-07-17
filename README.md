@@ -26,6 +26,8 @@ Start by installing CUDA if you have not already: https://docs.nvidia.com/cuda/c
 
 Then install Pytorch according to the instructions: https://pytorch.org/get-started/locally/ . In most cases, it will suffice to `pip install torch`.
 
+On the ComputeCanada cluster, you will have to comment out arrow dependency and load the module instead with `module load arrow`.
+
 Now you can install the requirements:
 
 `pip install -r requirements.txt`
