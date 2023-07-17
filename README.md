@@ -12,7 +12,7 @@ Clone the repository:
 
 `cd thermostability-transfer`
 
-Make a new virual environment (tested with Python=3.8+):
+Make a new virual environment (tested with Python=3.8+). On a cluster, you might need to `module load python` first:
 
 `virtualenv pslm`
 
