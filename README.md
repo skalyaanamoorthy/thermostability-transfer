@@ -53,7 +53,15 @@ Again, you will need to specify the location of the repository (--tranception_lo
 
 KORPM:
 
+Make sure to have Git LFS in order to obtain the potential maps used by KORPM, otherwise you can download the repository as a .zip and extract it.
+
 `git clone https://github.com/chaconlab/korpm`
+
+You will need to compile korpm with the gcc compiler:
+
+`cd korpm/sbg`
+
+`sh ./compile_korpm.sh`
 
 Like the above methods, there is a wrapper script in inference_scripts where you will need to specify the installation directory with the argument --korpm_loc.
 
