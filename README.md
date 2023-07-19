@@ -111,7 +111,9 @@ You will need the following tools to help recompute features:
 AliStat (for getting multiple sequence alignment statistics): https://github.com/thomaskf/AliStat
 
 `git clone https://github.com/thomaskf/AliStat`
+
 `cd AliStat`
+
 `make`
 
 DSSP (for extracting secondary structure and residue accessibility): https://github.com/cmbi/dssp
