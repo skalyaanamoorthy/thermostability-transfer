@@ -84,10 +84,12 @@ Ensuring to replace the modeller version and system architecture as required. Th
 
 To run inference on either FireProtDB or S669/S461 you will need to preprocess the mutants in each database, obtaining their structures and sequences and modelling missing residues. You can accomplish this with preprocess.py. Assuming you are in the base level of the repo, you can call the following (will use the raw FireProtDB obtained from https://loschmidt.chemi.muni.cz/fireprotdb/ Browse Database tab):
 
-`python3 preprocessing/preprocess.py --dataset fireprotdb`
+`python preprocessing/preprocess.py --dataset fireprotdb`
 
 Note that the output dataframe `./data/fireprot_mapped.csv` is already generated, but the other files are not prepared.
-It is expected to see the message '507 observations lost from the original dataset' for FireProtDB. Note that you will also have to do this for S669. S461 is a subset of S669, so you can call either dataset for the `--dataset` argument, and the same preprocessing will occur; the subset will be generated in the analysis notebook (see Analysis section). For inverse/reversion mutations on S669/461, you will need the predicted mutant structures, which we obtained from the authors (thank you, Drs. Birolo and Fariselli): https://academic.oup.com/bib/article/23/2/bbab555/6502552 . Place these in the folder structures_mut at the root level of the repository and run `preprocessing.py` with the flag `--inverse` to parse these as well. We also obtained the original data file Data_s669_with_predictions.csv from the Supplementary information of this paper, adjusting one record to accurately reflect the structure.
+It is expected to see the message '507 observations lost from the original dataset' for FireProtDB. Note that you will also have to do this for S669. S461 is a subset of S669, so you can call either dataset for the `--dataset` argument, and the same preprocessing will occur; the subset will be generated in the analysis notebook (see Analysis section). For inverse/reversion mutations on S669/461, you will use the predicted mutant structures in the structures_mut folder, which we obtained from the authors (thank you, Drs. Birolo and Fariselli): https://academic.oup.com/bib/article/23/2/bbab555/6502552. They will have to be preprocessed as well . We also obtained the original data file Data_s669_with_predictions.csv from the Supplementary information of this paper, adjusting one record to accurately reflect the structure. Citation: Pancotti, C. et al. Predicting protein stability changes upon single-point mutation: a thorough comparison of the available tools on a new dataset. Briefings in Bioinformatics 23, bbab555 (2022).
+
+`python preprocessing.py --dataset s669`
 
 ## Running Inference
 
