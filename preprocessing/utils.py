@@ -333,11 +333,6 @@ def align_sequence_structure(code, chain, pdb_seq, dataset, d,
         pdb_gapped = ['-']*12676 + list(pdb_ungapped)
         pdb_gapped = ''.join(pdb_gapped)
         uniprot_gapped = uniprot_seq
-    #elif code == '1JNX':
-    #    pdb_gapped = pairwise2.align.globalms(
-    #       uniprot_seq, pdb_ungapped, 2, 0.5, -1, -0.1)[0].seqB 
-    #    uniprot_gapped = pairwise2.align.globalms(
-    #       pdb_gapped, uniprot_seq, 2, 0.5, -1, -0.1)[0].seqB
 
     # in most cases, it suffices to do an automatic alignment
     elif uniprot_seq is None:
@@ -366,19 +361,6 @@ def align_sequence_structure(code, chain, pdb_seq, dataset, d,
     if code == '1AAR':
         pdb_gapped = ['-']*608 + list(pdb_ungapped)
         pdb_gapped = ''.join(pdb_gapped)
-
-    #elif dataset == 's669':
-
-    #    # automatical alignments
-    #    elif uniprot_seq is not None:
-    #        aln = pairwise2.align.globalms(
-    #            uniprot_seq, pdb_ungapped, 2, 0.5, -1, -0.1
-    #            )[0]
-    #        uniprot_gapped = aln.seqA
-    #        pdb_gapped = aln.seqB
-    #    # use the PDB sequence if there is no UniProt sequence found
-    #    else:
-
 
     # dataframe which shows how the sequence-structure alignment was created
     alignment_df = pd.DataFrame(index=range(100000))

@@ -777,7 +777,7 @@ def compute_stats(
                     cum_muts = 0
                     for _, group in pred_df_discrete.groupby('code'): 
                         if len(group) > 1:
-                            group[meas] = group[meas].astype(int)
+                            #group[meas] = group[meas].astype(int)
                             cur_ps = metrics.average_precision_score(group[meas], group[col])
                             # NaN if there is only one class in this scaffold for this protein
                             if np.isnan(cur_ps):
@@ -1030,7 +1030,7 @@ def calculate_p_values(df, ground_truth_col, statistic, n_bootstraps=100):
     df_out.columns = ['model1', 'weight1', 'model2', 'weight2', f'mean_{statistic}', 'p_value']
     return p_values, mean_values, df_out
 
-def model_combinations_heatmap(df, statistic, measurement, n_bootstraps=100, threshold=None):
+def model_combinations_heatmap(df, statistic, measurement, n_bootstraps=100, threshold=None, custom_colors=dict()):
 
     font = {'size'   : 14}
     matplotlib.rc('font', **font)
@@ -1137,3 +1137,288 @@ def model_combinations_heatmap(df, statistic, measurement, n_bootstraps=100, thr
     plt.show()
 
     return stat_df, log_pvals
+
+def custom_barplot(data, x, y, hue, width, ax, use_color=None, legend_labels=None, legend_colors=None, std=True):
+
+    if legend_labels is not None and legend_colors is not None:
+        lut = dict(zip(legend_labels, legend_colors))
+
+    unique_x = list(data[x].unique())
+    data = data.copy(deep=True)#.sort_values(width)
+    if legend_labels is not None:
+        unique_hue = legend_labels
+        unique_width = data.groupby([hue, width]).mean().astype(int).reset_index(level=1).loc[unique_hue][width]
+    else:
+        unique_hue = data[hue].unique()
+        unique_width = data[width].unique()
+
+    #assert len(unique_hue) == len(unique_width)
+
+    if use_color == None:
+        colors = legend_colors
+    else:
+        colors = [use_color]
+
+    max_width = sum(unique_width)
+
+    bar_centers = np.zeros((len(unique_x), len(unique_hue)))
+    for i in range(len(unique_x)):
+        bar_centers[i, :] = i
+
+    #print(unique_width)
+
+    w_sum = 0
+    for j, w in enumerate(unique_width):
+        w_sum += w
+        bar_centers[:, j] += (-max_width / 2 + w_sum -w/2) / (max_width * 1.1)
+
+    for j, (width_value, hue_value, color) in enumerate(zip(unique_width, unique_hue, colors)):
+        y_max = -1
+        for i, x_value in enumerate(unique_x):
+            if 'ddG' in x_value or 'dTm' in x_value:
+                continue
+            filtered_data = data[(data[x] == x_value) & (data[width] == width_value)]
+            y_std = 0
+            if std:
+                y_value = filtered_data[f'{y}_mean'].item()#.mean()
+                y_std = filtered_data[f'{y}_std'].item()
+
+            y_max = max(y_max, y_value)
+            bar_width = filtered_data[width].mean() / (max_width * 1.1)
+
+            if legend_labels is not None and legend_colors is not None:
+                color = lut[hue_value]
+            ax.bar(bar_centers[i, j], y_value, color=color, width=bar_width, alpha=1 if not use_color else 0.4, yerr=y_std)
+        ax.axhline(y=y_max, color=color, linestyle='dashed')
+
+    ax.set_xticks(np.arange(len(unique_x)))
+    ax.set_xticklabels(unique_x)
+    ax.set_xlabel(x)
+    ax.set_ylabel(y)
+
+    if legend_labels is not None and legend_colors is not None:
+        legend_elements = [Patch(facecolor=lut[hue_value], label=f'{hue_value}: {int(width_value)}') for hue_value, width_value in zip(unique_hue, unique_width)]
+    else:
+        legend_elements = [Patch(facecolor=color, label=f'{hue_value}: {int(width_value)}') for hue_value, width_value, color in zip(unique_hue, unique_width, colors)]
+    #ax.legend(handles=legend_elements, title=hue)
+    return legend_elements
+
+def compare_performance(dbc,
+                        threshold_1 = 1.5, 
+                        threshold_2 = None, 
+                        split_col = 'hbonds', 
+                        split_col_2 = None, 
+                        measurement = 'ddG',
+                        statistic = 'MCC',
+                        statistic_2 = None,
+                        n_bootstraps = 100,
+                        count_proteins = False,
+                        count_muts = False,
+                        custom_colors = None
+                        ):
+
+    if statistic_2 is None:
+        statistic_2 = statistic
+
+    font = {'size'   : 20}
+    matplotlib.rc('font', **font)
+
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(15,20), sharex=True)
+    fig.patch.set_facecolor('white')
+    sns.set_palette('tab10')
+
+    db_complete = dbc.copy(deep=True)[list(custom_colors.keys()) + [c for c in dbc.columns if '_dir' not in c]]
+    db_complete = db_complete.dropna(subset=measurement)
+
+    # Ungrouped performance (doesn't change)
+    #ungrouped = compute_stats(db_complete, measurements=[measurement], stats=[statistic_2] + ['n', 'tp', 'tn', 'fp', 'fn'])
+    for i in tqdm(range(n_bootstraps)):
+        if i == 0:
+            full = compute_stats(db_complete.sample(frac=1, replace=True), measurements=[measurement], stats=[statistic] + ['n'])
+        else:
+            ungrouped = compute_stats(db_complete.sample(frac=1, replace=True), measurements=[measurement], stats=[statistic] + ['n'], quiet=True)
+            cur = ungrouped.reset_index()[['n', 'model', 'class', statistic_2] \
+                + ([f'n_proteins_{statistic}'] if count_proteins else []) \
+                + ([f'n_muts_{statistic}'] if count_muts else [])]
+            full = full.merge(cur, on=['model', 'class'], suffixes=('', f'_{i}'))
+            #print(full)
+
+    full = full.rename({statistic_2: statistic_2+'_0', 'n': 'n_0'}, axis=1)
+    full[f'{statistic_2}_mean'] = full[[f'{statistic_2}_{i}' for i in range(n_bootstraps)]].mean(axis=1)
+    if count_proteins:
+        full = full.rename({f'n_proteins_{statistic}': f'n_proteins_{statistic}_0'}, axis=1)
+        full['n'] = full[[f'n_proteins_{statistic}_{i}' for i in range(n_bootstraps)]].mean(axis=1).astype(int)
+    elif count_muts:
+        full = full.rename({f'n_muts_{statistic}': f'n_muts_{statistic}_0'}, axis=1)
+        full['n'] = full[[f'n_muts_{statistic}_{i}' for i in range(n_bootstraps)]].mean(axis=1).astype(int)
+    else:
+        full['n'] = full[[f'n_{i}' for i in range(n_bootstraps)]].mean(axis=1).astype(int)
+    full[f'{statistic_2}_std'] = full[[f'{statistic_2}_{i}' for i in range(n_bootstraps)]].std(axis=1)
+    
+    if statistic_2 == 'ndcg':
+        full[f'{statistic_2}_mean'] = 100**full[f'{statistic_2}_mean']
+        full[f'{statistic_2}_std'] = 100**full[f'{statistic_2}_std']
+
+    #full = full.drop(statistic_2, axis=1)
+    ungrouped = full#.rename({f'{statistic_2}_mean': statistic_2}, axis=1)
+    #print(ungrouped)
+    ungrouped0 = ungrouped
+    ungrouped0 = ungrouped0.sort_values(f'{statistic_2}_mean', ascending=False)
+    #print(ungrouped0)
+
+    # Unnormalized split performance
+    #c = compute_stats(db_complete, split_col=split_col, split_col_2=split_col_2, split_val=threshold_1, split_val_2=threshold_2, measurements=[measurement], stats=[statistic_2] + ['n', 'tp', 'tn', 'fp', 'fn'])
+    
+    full = pd.DataFrame()
+    for i in tqdm(range(n_bootstraps)):
+        if i == 0:
+            full = compute_stats(db_complete.sample(frac=1, replace=True), 
+                split_col=split_col, split_col_2=split_col_2, split_val=threshold_1, split_val_2=threshold_2, measurements=[measurement], stats=[statistic] + ['n'])
+        else:
+            c = compute_stats(db_complete.sample(frac=1, replace=True), quiet=True,
+                split_col=split_col, split_col_2=split_col_2, split_val=threshold_1, split_val_2=threshold_2, measurements=[measurement], stats=[statistic] + ['n'])
+            cur = c.reset_index()[['n', 'model', 'class', statistic_2]
+                            + ([f'n_proteins_{statistic}'] if count_proteins else []) \
+                            + ([f'n_muts_{statistic}'] if count_muts else [])]
+            full = full.merge(cur, on=['model', 'class'], suffixes=('', f'_{i}'))
+            
+    full = full.rename({statistic_2: statistic_2+'_0', 'n': 'n_0'}, axis=1)
+    full[f'{statistic_2}_mean'] = full[[f'{statistic_2}_{i}' for i in range(n_bootstraps)]].mean(axis=1)
+    if count_proteins:
+        full = full.rename({f'n_proteins_{statistic}': f'n_proteins_{statistic}_0'}, axis=1)
+        full['n'] = full[[f'n_proteins_{statistic}_{i}' for i in range(n_bootstraps)]].mean(axis=1).astype(int)
+    elif count_muts:
+        full = full.rename({f'n_muts_{statistic}': f'n_muts_{statistic}_0'}, axis=1)
+        full['n'] = full[[f'n_muts_{statistic}_{i}' for i in range(n_bootstraps)]].mean(axis=1).astype(int)
+    else:
+        full['n'] = full[[f'n_{i}' for i in range(n_bootstraps)]].mean(axis=1).astype(int)
+    full[f'{statistic_2}_std'] = full[[f'{statistic_2}_{i}' for i in range(n_bootstraps)]].std(axis=1)
+
+    if statistic_2 == 'ndcg':
+        full[f'{statistic_2}_mean'] = 100**full[f'{statistic_2}_mean']
+        full[f'{statistic_2}_std'] = 100**full[f'{statistic_2}_std']
+
+    splits = full.set_index('model') 
+    splits = splits.loc[ungrouped0['model']]#.reset_index()
+    splits = splits.loc[ungrouped0['model']].reset_index() #.loc[splits['measurement']==measurement]
+
+    #ungrouped0 = splits.melt(id_vars=['model', 'class'], value_vars=['tp', 'tn', 'fp', 'fn'])
+
+    dbc = db_complete.copy(deep=True)
+    
+    if split_col_2 is not None:
+        dbc[f'{split_col} > {threshold_1} & {split_col_2} > {threshold_2}'] = (dbc[split_col] > threshold_1) & (dbc[split_col_2] > threshold_2)
+        dbc[f'{split_col} <= {threshold_1} & {split_col_2} > {threshold_2}'] = (dbc[split_col] <= threshold_1) & (dbc[split_col_2] > threshold_2)
+        dbc[f'{split_col} > {threshold_1} & {split_col_2} <= {threshold_2}'] = (dbc[split_col] > threshold_1) & (dbc[split_col_2] <= threshold_2)
+        dbc[f'{split_col} <= {threshold_1} & {split_col_2} <= {threshold_2}'] = (dbc[split_col] <= threshold_1) & (dbc[split_col_2] <= threshold_2)
+        vvs = [f'{split_col} > {threshold_1} & {split_col_2} > {threshold_2}', 
+                 f'{split_col} <= {threshold_1} & {split_col_2} > {threshold_2}',
+                 f'{split_col} > {threshold_1} & {split_col_2} <= {threshold_2}',
+                 f'{split_col} <= {threshold_1} & {split_col_2} <= {threshold_2}']
+    elif threshold_2 is None:
+        dbc[f'{split_col} > {threshold_1}'] = dbc[split_col] > threshold_1
+        dbc[f'{split_col} <= {threshold_1}'] = dbc[split_col] <= threshold_1
+        vvs = [f'{split_col} > {threshold_1}', f'{split_col} <= {threshold_1}']
+    else:
+        dbc[f'{split_col} > {threshold_1}'] = dbc[split_col] > threshold_1
+        dbc[f'{split_col} > {threshold_1}'] = dbc[split_col] > threshold_1
+        dbc[f'{threshold_1} >= {split_col} > {threshold_2}'] = (dbc[split_col] <= threshold_1) & (dbc[split_col] > threshold_2)
+        dbc[f'{split_col} <= {threshold_2}'] = dbc[split_col] <= threshold_2
+        vvs = [f'{split_col} > {threshold_1}', f'{threshold_1} >= {split_col} > {threshold_2}', f'{split_col} <= {threshold_2}']
+
+    dbc = dbc.dropna(subset=measurement)
+    dbc = dbc.melt(id_vars=dbc.columns.drop(vvs), value_vars=vvs)
+    dbc = dbc.loc[dbc['value']].rename({'variable':'split'}, axis=1)
+    vvs2 = ungrouped0['model'].unique()
+
+    dbc = dbc.melt(id_vars=['split'], value_vars=vvs2)
+    std = dbc.groupby('variable')['value'].transform('std')
+    dbc['value'] /= std
+    ungrouped1 = pd.DataFrame()
+    for key in ungrouped0['model'].unique():
+        subset = dbc.loc[dbc['variable']==key]
+        ungrouped1 = pd.concat([ungrouped1, subset])
+
+    categories = ungrouped0['model'].unique()
+
+    # Class-wise predicted distribution
+    my_palette = ["#34aeeb", "#eb9334", "#3452eb", "#eb4634"]
+    legend = sns.boxplot(data=ungrouped1,x='variable',y='value',hue=f'split',ax=ax2, palette=my_palette).legend_
+                           # split=True if threshold_2 is None else False, bw=0.2, cut=0,
+    labels = [t.get_text() for t in legend.texts]
+    colors = [c.get_facecolor() for c in legend.legendHandles]
+
+    ax2.set_title('Class-wise predicted distribution')
+    ax2.set_ylabel('Stability / log-likelihood')
+    ax2.set_xlabel('')
+    ax2.grid()
+    ax2.axhline(y=0, color='r', linestyle='dashed')
+
+    legend_elements = custom_barplot(data=splits.drop_duplicates(), x='model', y=statistic_2, hue='class', width='n', ax=ax1, legend_colors=colors, legend_labels=labels)
+    _ = custom_barplot(data=ungrouped.reset_index().set_index('model').loc[ungrouped0['model']].drop_duplicates().reset_index(), 
+                   x='model', y=statistic_2, hue='class', width='n', ax=ax1, use_color='grey')
+
+    statistic_ = {'weighted_ndcg': 'wNDCG', 'weighted_spearman': 'wρ', 'weighted_auprc': 'wAUPRC', 'auprc': 'AUPRC', 'spearman': 'ρ'}[statistic_2]
+    ax1.set_title('Class-wise mean performance') #'Delta vs. split mean'
+    ax1.set_ylabel(statistic_)
+    ax1.grid()
+    ax1.set_xlabel('')
+
+    rename_dict = {'delta_kdh': 'Δ hydrophobicity', 'delta_vol': 'Δ volume', 'abs_ASA': 'SASA'}
+    new_legend_elements = []
+    for legend_element in legend_elements:
+        original_label = legend_element.get_label()
+        print(original_label)
+        for key in rename_dict.keys():
+            if key in original_label:
+                original_label = original_label.replace(key, rename_dict[key])
+        # Update label if it exists in the dictionary
+        #if original_label in rename_dict:
+                legend_element.set_label(original_label)
+        new_legend_elements.append(legend_element)
+
+    ax1.legend(handles=new_legend_elements, loc='lower left')
+    ax2.legend(handles=new_legend_elements)
+    ax2.set_xticks(ax2.get_xticks(), categories, rotation=45, ha='right')
+
+    for ax in list([ax2, ax1]):
+        for tick_label in ax.get_xticklabels():
+            for key, val in custom_colors.items():
+                if key in tick_label.get_text():
+                    tick_label.set_color(custom_colors[key])
+    plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
+
+    print([tick.get_text() for tick in ax2.get_xticklabels()])
+    remapped_x = [remap_names_2[tick.get_text()] if tick.get_text() in remap_names_2.keys() else tick.get_text() for tick in ax2.get_xticklabels()]
+    ax.set_xticklabels(remapped_x)
+
+    print(splits.groupby('class')['n'].max())
+    plt.show()
+    return splits
+
+def stack_frames(dbf):
+    db_stack = dbf.copy(deep=True)
+    df = db_stack.melt(var_name='pred_col', value_name='value', value_vars=db_stack.columns, ignore_index=False)
+    df = df.reset_index()
+    df.loc[df['pred_col'].str.contains('dir'), 'direction'] = 'dir'
+    df.loc[df['pred_col'].str.contains('inv'), 'direction'] = 'inv'
+    assert len(df.loc[df['pred_col'].str.contains('dir') & df['pred_col'].str.contains('inv')]) == 0
+    df = df.set_index(['direction', 'uid'])  # Assuming 'index' is the name of uid column
+    df['pred_col'] = df['pred_col'].str.replace('_dir', '')
+    df['pred_col'] = df['pred_col'].str.replace('_inv', '')
+    dbf = df.pivot_table(index=['direction', 'uid'], columns='pred_col', values='value')
+    return dbf
+
+def extract_decimal_number(text):
+    # Define a regular expression to match decimal numbers
+    decimal_regex = r"\d+\.\d+"
+    
+    # Search for the decimal number in the text using the regular expression
+    match = re.search(decimal_regex, text)
+    
+    # If a match is found, return the float value of the matched string
+    if match:
+        return float(match.group())
+    
+    # If no match is found, return NaN
+    return np.nan

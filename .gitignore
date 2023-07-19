@@ -4,6 +4,7 @@ predictions/
 sequences/
 structures/
 windows/
+DMS_tranception/
 DMS_Tranception/
 DMS_MSA/
 preprocessing/__pycache__/

@@ -35,7 +35,7 @@ def score_sequence(args):
             start = time.time()
             try:
                 chain = group['chain'].head(1).item()
-                if args.low_mem and code in ['1CEY', '6TQ3']:
+                if args.low_mem and code in ['1CEY', '1PX0', '2CHF', '6TQ3']:
                     print(f'Skipping {code} which requires >64 GB VRAM')
                     continue
                 print(f'Evaluating {code} {chain}')

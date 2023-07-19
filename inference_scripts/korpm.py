@@ -20,9 +20,11 @@ def main(args):
 
     elif 's669' in args.db_location.lower():
         dataset = 's669'
-        # mutation is defined using structure
+        # just to keep consistent with the format above
+        db = db.groupby('uid').first()
 
         if not args.inverse:
+            # mutation is defined using structure
             db['korpm_mut'] = db['wild_type'] + db['chain'] + \
                 db['position'].astype(str) + db['mutation']
             db['korpm_struct'] = db['code'] + '_' + db['chain']
@@ -46,7 +48,7 @@ def main(args):
                 db['wild_type'] + db['position'].astype(str) + db['mutation']
 
     else:
-        print('Database name must contain either "db" or "db"')
+        print('Database name must contain either "s669" or "fireprot"')
         exit()
 
     db.to_csv(
@@ -57,7 +59,7 @@ def main(args):
     korpm_input = dataset+'_korpm.csv'
     korpm_output = dataset+'_korpm_preds.txt'
 
-    cmd = f"{os.path.join(args.korpm_loc, 'sbg', 'bin', 'korpm')}" \
+    cmd = f"{os.path.join(args.korpm_loc, 'sbg', 'bin', 'korpm_gcc')}" \
           f" {os.path.join(args.korpm_loc, korpm_input)}" \
           f" --dir {args.structures_dir} --score_file " \
           f" {os.path.join(args.korpm_loc, 'pot', 'korp6Dv1.bin')}" \
@@ -76,7 +78,9 @@ def main(args):
         ]
     korpm_preds = db.reset_index().merge(
         korpm_preds, on=['korpm_mut', 'korpm_struct']
-        ).set_index('uid').drop_duplicates()
+        )
+    print(korpm_preds.head())
+    korpm_preds = korpm_preds.set_index('uid').drop_duplicates()
     korpm_preds = korpm_preds[[
         f'korpm{"_dir" if "inv" not in dataset else "_inv"}'
         ]]

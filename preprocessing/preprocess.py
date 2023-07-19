@@ -42,7 +42,7 @@ def main(args):
                    os.path.join(SEQUENCES_DIR, 'fasta_wt'), 
                    os.path.join(SEQUENCES_DIR, 'fasta_mut'),
                    os.path.join(SEQUENCES_DIR, 'fasta_up'),
-                   os.path.join(output_path, 'DMS_tranception'),
+                   os.path.join(output_path, 'DMS_Tranception'),
                    os.path.join(output_path, 'DMS_MSA')]:
         os.makedirs(folder, exist_ok=True)
 
@@ -233,7 +233,7 @@ def main(args):
                     'pdb_file': pdb_file,'mutant_pdb_file': mutant_pdb_file,
                     'multimer': multimer, 'msa_file': orig_msa,
                     'tranception_dms': os.path.join(output_path,
-                    'DMS_tranception', f'{code}_{chain}_{dataset}.csv'),
+                    'DMS_Tranception', f'{code}_{chain}_{dataset}.csv'),
                 }}).T
 
                 # used for getting features in features.py
