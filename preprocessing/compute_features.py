@@ -339,7 +339,7 @@ def get_residue_interactions(model, target_chain_id, residue_id):
     return h_bonds, salt_bridges, b_factor, h_bond_identities
 
 
-def extract_features(database_loc, path='~/OneDrive/thermostability_transfer'):
+def extract_features(database_loc, path):
     """
     Generate all the features and add them to the dataset_mapped.csv
     """
@@ -382,6 +382,10 @@ def extract_features(database_loc, path='~/OneDrive/thermostability_transfer'):
      
     # iterate through each unique wild-type PDB structure
     for code, group in tqdm(db.groupby('code')):
+        out_loc = os.path.join(path, 'results', code)
+        if not os.path.exists(out_loc):
+            print('Storing features in new directory')
+            os.makedirs(out_loc)
         print(code)
 
         # get the structure and target chain where the mutation is
@@ -444,14 +448,12 @@ def extract_features(database_loc, path='~/OneDrive/thermostability_transfer'):
 
         run_alistat(
             alignment_file, args.alistat_loc,
-            os.path.join(
-                path, 'predictions', code+'_'+target_chain_id, ''
-                )
+            os.path.join(out_loc, '')
             )
 
         for uid, row in group.iterrows():
             df_out.at[uid, 'structure_length'] = len(pdb_seq)
-            df_out.at[uid, 'sequence_length'] = row['uniprot_seq']
+            df_out.at[uid, 'sequence_length'] = len(row['uniprot_seq'])
 
             wt = row['wild_type']
             target_pos = row['position'] + \
@@ -498,15 +500,13 @@ def extract_features(database_loc, path='~/OneDrive/thermostability_transfer'):
                 df_out.at[uid, 'conservation'] = pri
 
                 # assumes predictions and msa stats from AliStats are saved
-                # in folders within predictions directory
+                # in folders within results directory
                 df_out.at[uid, 'column_completeness'] = get_column_completeness(
-                        os.path.join(path, 'predictions', 
-                        code+'_'+row['chain'], '.Table_2.csv'
+                        os.path.join(out_loc, '.Table_2.csv'
                         ), target_pos_up + 1)
                 
                 completeness, n_seqs = get_alignment_summary(
-                    os.path.join(path, 'predictions',
-                     code+'_'+row['chain'], '.Summary.txt'))
+                    os.path.join(out_loc, '.Summary.txt'))
                 #print(completeness, n_seqs, 1)
                 df_out.at[uid, 'completeness_score'] = completeness
                 df_out.at[uid, 'n_seqs'] = n_seqs
@@ -520,11 +520,6 @@ def extract_features(database_loc, path='~/OneDrive/thermostability_transfer'):
                     interface_residues_indices.index(target_pos)]
                 df_out.at[uid, 'on_interface'] = True
                 df_out.at[uid, 'target_position'] = target_pos
-
-                #except:
-                #        print(wt, target_pos_0)
-                #        print(interface_residues_indices)
-                #        print(interface_residue_identities)
 
             hbonds, saltbrs, b_factor, h_bond_identities = \
                 get_residue_interactions(model, target_chain_id, target_pos)

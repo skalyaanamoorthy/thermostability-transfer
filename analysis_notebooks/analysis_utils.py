@@ -1140,6 +1140,8 @@ def model_combinations_heatmap(df, statistic, measurement, n_bootstraps=100, thr
 
 def custom_barplot(data, x, y, hue, width, ax, use_color=None, legend_labels=None, legend_colors=None, std=True):
 
+    data = data.dropna(how='all', axis=1)
+
     if legend_labels is not None and legend_colors is not None:
         lut = dict(zip(legend_labels, legend_colors))
 
@@ -1152,7 +1154,10 @@ def custom_barplot(data, x, y, hue, width, ax, use_color=None, legend_labels=Non
         unique_hue = data[hue].unique()
         unique_width = data[width].unique()
 
-    #assert len(unique_hue) == len(unique_width)
+    try:
+        assert len(unique_hue) == len(unique_width)
+    except:
+        raise AssertionError('This assertion usually fails when there are missing predictions which were not dropped in the input')
 
     if use_color == None:
         colors = legend_colors

@@ -20,3 +20,7 @@ data/s669_mapped_preds.csv.lock
 status.txt
 diff.txt
 *pycache*
+cluster_inference_scripts/msa_transformer_preds.csv
+data/fireprot_mapped_preds.csv
+data/s669_mapped_preds.csv
+results/*

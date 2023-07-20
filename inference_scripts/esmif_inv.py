@@ -1,6 +1,7 @@
 import argparse
 import os
 import time
+import torch
 
 import numpy as np
 from tqdm import tqdm
@@ -15,7 +16,7 @@ def score_singlechain_backbones(model, alphabet, args):
     print('Loading data and running in singlechain mode...')
     df = pd.read_csv(args.db_location, index_col=0).reset_index()
     df2 = df.groupby('uid').first()
-    logps = pd.DataFrame(index=df2.index,columns=['esmif_monomer_full_inv', 'runtime_esmif_monomer_full_inv'])
+    logps = pd.DataFrame(index=df2.index,columns=['esmif_monomer_inv', 'runtime_esmif_monomer_inv'])
 
     # check if a GPU is available and if so, use it
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
@@ -31,9 +32,9 @@ def score_singlechain_backbones(model, alphabet, args):
                 print(f'Evaluating {code} {chain}')
 
                 coords, mutant_seq = esm.inverse_folding.util.load_coords(pdb_file, chain)
-                print('Mutant sequence loaded from relaxed structure file:')
-                print(mutant_seq)
-                print('\n')
+                #print('Mutant sequence loaded from relaxed structure file:')
+                #print(mutant_seq)
+                #print('\n')
 
                 ll_mut, _ = esm.inverse_folding.util.score_sequence(
                         model, alphabet, coords, mutant_seq) 
@@ -45,14 +46,14 @@ def score_singlechain_backbones(model, alphabet, args):
                         wt = row['wild_type']
                         mut = row['mutation']
                         seq = row['pdb_ungapped']
-                        print('Mutant sequence loaded from database:')
+                        #print('Mutant sequence loaded from database:')
                         assert seq[int(pos) - 1] == mut
                         seq = list(seq)
                         seq[int(pos) - 1] = wt
                         seq = ''.join(seq)
-                        print(f'Native sequence loaded from database:')
-                        print(seq)
-                        print('\n')
+                        #print(f'Native sequence loaded from database:')
+                        #print(seq)
+                        #print('\n')
                         start = time.time()
                         ll_wt, _ = esm.inverse_folding.util.score_sequence(
                                 model, alphabet, coords, seq)
@@ -86,7 +87,8 @@ def main():
 
     model, alphabet = esm.pretrained.esm_if1_gvp4_t16_142M_UR50()
     model = model.eval()
-
+    
+    # only have monomer structure for inverse.
     score_singlechain_backbones(model, alphabet, args)
 
 if __name__ == '__main__':

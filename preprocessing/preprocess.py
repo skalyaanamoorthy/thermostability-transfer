@@ -33,12 +33,12 @@ def main(args):
     ALIGNMENTS_DIR = os.path.join(output_path, 'alignments')
     SEQUENCES_DIR = os.path.join(output_path, 'sequences')
     WINDOWS_DIR = os.path.join(output_path, 'windows')
-    PREDICTIONS_DIR = os.path.join(output_path, 'predictions')
+    RESULTS_DIR = os.path.join(output_path, 'results')
     DATA_DIR = os.path.join(output_path, 'data')
 
     # first build a folder structure for organizing inputs and outputs.
     for folder in [BIO_ASSEMBLIES_DIR, STRUCTURES_DIR, ALIGNMENTS_DIR, 
-                   SEQUENCES_DIR, WINDOWS_DIR, PREDICTIONS_DIR, DATA_DIR,
+                   SEQUENCES_DIR, WINDOWS_DIR, RESULTS_DIR, DATA_DIR,
                    os.path.join(SEQUENCES_DIR, 'fasta_wt'), 
                    os.path.join(SEQUENCES_DIR, 'fasta_mut'),
                    os.path.join(SEQUENCES_DIR, 'fasta_up'),
@@ -96,9 +96,9 @@ def main(args):
         else:
             chain = str(group['chain'].head(1).item())
         
-        # directory which will be used to organize predictions structure-wise
+        # directory which will be used to organize RESULTS structure-wise
         os.makedirs(
-            os.path.join(PREDICTIONS_DIR, f'{code}_{chain}'), exist_ok=True
+            os.path.join(RESULTS_DIR, f'{code}_{chain}'), exist_ok=True
             )
 
         # get the biological assembly, which includes multimeric structures
@@ -213,7 +213,6 @@ def main(args):
                     )
 
                 # predicted mutant structures obtained from Pancotti et al.
-                # this will have to be placed here manually
                 mutant_pdb_file = os.path.join(
                     output_path, 'structures_mut',
                     f'{code.lower()}{chain_orig}_{wt}{pos}{mut}.pdb')
@@ -301,16 +300,16 @@ def main(args):
         # happens due to residue deletions in 1AYE, 1C52, 1CTS, 5AZU
         if args.rosetta:
             offsets_rosetta = utils.get_rosetta_mapping(
-                code, chain, group, dataset, SEQUENCES_DIR, PREDICTIONS_DIR
+                code, chain, group, dataset, SEQUENCES_DIR, RESULTS_DIR
                 )
             # would only be None if the structure or chain was not found
             if offsets_rosetta is not None:
                 hit_rosetta = pd.concat([hit_rosetta, offsets_rosetta])
         # do the same for inverse structures
-        if args.inverse:
+        if args.inverse and args.rosetta:
             offsets_robetta = utils.get_rosetta_mapping(
                 code, chain, group, dataset, 
-                SEQUENCES_DIR, PREDICTIONS_DIR, inverse=True
+                SEQUENCES_DIR, RESULTS_DIR, inverse=True
                 )
             if offsets_robetta is not None:
                 hit_robetta = pd.concat([hit_robetta, offsets_robetta])
@@ -322,7 +321,7 @@ def main(args):
             on=['code', 'chain', 'position', 'mutation'], 
             how='left'
             )
-    if args.inverse:
+    if args.inverse and args.rosetta:
         out = out.merge(
             hit_robetta, 
             on=['code', 'chain', 'position', 'mutation'], 
@@ -390,5 +389,6 @@ if __name__=='__main__':
         args.db_loc = './data/fireprotdb_results.csv'
     elif args.dataset.lower() in ['s669', 's461']:
         args.db_loc = './data/Data_s669_with_predictions.csv'
+        args.inverse = True
 
     main(args)
