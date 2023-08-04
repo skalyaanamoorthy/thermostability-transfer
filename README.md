@@ -12,19 +12,19 @@ Clone the repository:
 
 `cd thermostability-transfer`
 
+If you do not have root permissions (ability to sudo) you should use conda. Otherwise you can use VirtualEnv.
+
 Make a new virual environment (tested with Python=3.8+). On a cluster, you might need to `module load python` first:
 
 `virtualenv pslm`
 
 `source pslm/bin/activate`
 
-## Inference Setup
+OR use conda, you might need to `module load anaconda` and/or `module load python` first:
 
-If you have a sufficient NVIDIA GPU (tested on 3090 and A100) you can make predictions with the deep learning models.
+`conda create --name pslm python=3.8`
 
-Start by installing CUDA if you have not already: https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html. At time of writing you will need to get CUDA 11.X in order to be able to install the torch-* requirements. If you are on a cluster, make sure you have the cuda module loaded e.g. `module load cuda` as well as any compiler necessary e.g. `module load gcc`. If you are using WSL2, you should be able to just use `sh ./convenience_scripts/cuda_setup_wsl.sh`. MIF-ST also requires cuDNN: https://docs.nvidia.com/deeplearning/cudnn/install-guide/index.html.
-
-Then install Pytorch according to the instructions: https://pytorch.org/get-started/locally/ . In most cases, it will suffice to `pip install torch`.
+`conda activate pslm`
 
 On the ComputeCanada cluster, you will have to comment out arrow dependency and load the module instead with `module load arrow`.
 
@@ -35,6 +35,18 @@ Now you can install the requirements:
 Finally, install evcouplings with no dependencies (it is an old package which will create conflicts):
 
 `pip install evcouplings --no-deps`
+
+## Inference Setup
+
+If you have a sufficient NVIDIA GPU (tested on 3090 and A100) you can make predictions with the deep learning models.
+
+Start by installing CUDA if you have not already: https://docs.nvidia.com/cuda/cuda-installation-guide-linux/index.html. At time of writing you will need to get CUDA 11.X in order to be able to install the torch-* requirements. If you are on a cluster, make sure you have the cuda module loaded e.g. `module load cuda` as well as any compiler necessary e.g. `module load gcc`. If you are using WSL2, you should be able to just use `sh ./convenience_scripts/cuda_setup_wsl.sh`. MIF-ST also requires cuDNN: https://docs.nvidia.com/deeplearning/cudnn/install-guide/index.html.
+
+Then install Pytorch according to the instructions: https://pytorch.org/get-started/locally/ . In most cases, it will suffice to `pip install torch`.
+
+Finally, you can install the inference-specific requirements:
+
+`pip install -r requirements_inference.txt`
 
 You will also need to install the following inference repositories if you wish to use these specific models:
 
@@ -73,16 +85,19 @@ You will need the following additional tools for preprocessing:
 
 Modeller (for repairing PDB structures): https://salilab.org/modeller/download_installation.html
 
-You will need a license, which is free for academic use; follow the download page instructions to make sure it is specified. You can install with conda, but be sure the change the paths in the following script.
-To make modeller visible to the Python scripts, you can append to your `./pslm/bin/activate` file following the pattern shown in `convenience_scripts/append_modeller_paths.sh`:
+You will need a license, which is free for academic use; follow the download page instructions to make sure it is specified. 
+
+If you install using conda, you can skip the following workaround and resume at the python call.
+
+To make modeller visible to the Python scripts from within the VirtualEnv, you can append to your `./pslm/bin/activate` file following the pattern shown in `convenience_scripts/append_modeller_paths.sh`:
 
 `sh convenience_scripts/append_modeller_paths.sh`
 
-Ensuring to replace the modeller version and system architecture as required. Then make sure to restart the virtualenv:
+**Ensure to replace the modeller version and system architecture as required (you can find these with `uname` and `uname -m` respectively). Then make sure to restart the virtualenv**:
 
 `source pslm/bin/activate`
 
-To run inference on either FireProtDB or S669/S461 you will need to preprocess the mutants in each database, obtaining their structures and sequences and modelling missing residues. You can accomplish this with preprocess.py. Assuming you are in the base level of the repo, you can call the following (will use the raw FireProtDB obtained from https://loschmidt.chemi.muni.cz/fireprotdb/ Browse Database tab):
+To run inference on either FireProtDB or S669/S461 you will need to preprocess the mutants in each database, obtaining their structures and sequences and modelling missing residues. You can accomplish this with preprocess.py. Assuming you are in the base level of the repo, you can call the following (this will use the raw FireProtDB obtained from https://loschmidt.chemi.muni.cz/fireprotdb/ Browse Database tab):
 
 `python preprocessing/preprocess.py --dataset fireprotdb`
 
@@ -97,7 +112,7 @@ Then, you can run any of the inference scripts in inference scripts. You can use
 
 `python inference_scripts/mpnn.py --db_location 'data/fireprot_mapped.csv' --output 'data/fireprot_mapped_preds.csv' --mpnn_loc ~/software/ProteinMPNN --noise '20'`
 
-Again, note that you must specify the install location for ProteinMPNN, Tranception, and KORPM because they originate from repositories.
+**Again, note that you must specify the install location for ProteinMPNN, Tranception, and KORPM because they originate from repositories.**
 
 If you are running on a cluster, you will likely find it convenient to modify the `cluster_inference_scripts` and directly submit them; they are designed to be submitted from their own folder as the working directory, rather than the root of the repo like all other files. Note that ESM methods (ESM-1V, MSA-Transformer, ESM-IF) and MIF methods (MIF and MIF-ST) will require substantial storage space and network usage to download the model weights on their first run (especially ESM-1V). To run inference of inverse/reversion mutations for structural methods you will need the predicted mutants as stated above, and you will have to use the _inv versions of each structural method.
 
