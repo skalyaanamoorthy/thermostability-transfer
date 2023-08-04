@@ -12,19 +12,19 @@ Clone the repository:
 
 `cd thermostability-transfer`
 
-If you do not have root permissions (ability to sudo) you should use conda. Otherwise you can use VirtualEnv.
+If you do not have root permissions (ability to sudo) you should use conda, as it will make future steps faster and easier. Otherwise you can use VirtualEnv.
 
-Make a new virual environment (tested with Python=3.8+). On a cluster, you might need to `module load python` first:
-
-`virtualenv pslm`
-
-`source pslm/bin/activate`
-
-OR use conda, you might need to `module load anaconda` and/or `module load python` first:
+To install with conda, you might need to `module load anaconda` and/or `module load python` first:
 
 `conda create --name pslm python=3.8`
 
 `conda activate pslm`
+
+**If you don't have conda and/or don't have root permissions: Make a new virual environment instead (tested with Python=3.8). On a cluster, you might need to `module load python` first:
+
+`virtualenv pslm`
+
+`source pslm/bin/activate`
 
 On the ComputeCanada cluster, you will have to comment out arrow dependency and load the module instead with `module load arrow`.
 
