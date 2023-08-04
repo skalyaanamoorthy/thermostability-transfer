@@ -415,7 +415,7 @@ def get_offsets(wt, pos, dataset, alignment_df):
     if dataset == 'fireprot':
         idx_mut = alignment_df.loc[
             alignment_df['uniprot_gapped']!='-'].head(pos).tail(1).index.item()
-    elif dataset == 's669':
+    else:
         idx_mut = alignment_df.loc[
             alignment_df['pdb_gapped']!='-'].head(pos).tail(1).index.item()
     
@@ -472,7 +472,7 @@ def save_formatted_data(code, chain, group, dataset, output_root):
 
     # open the Tranception file
     with open(os.path.join(
-        output_root, 'DMS_tranception', f'{code}_{chain}_{dataset}.csv'
+        output_root, 'DMS_Tranception', f'{code}_{chain}_{dataset}.csv'
         ), 'w') as trance:
         trance.write('mutated_sequence,mutant\n')
 
@@ -490,26 +490,26 @@ def save_formatted_data(code, chain, group, dataset, output_root):
                 uniprot_seq = list(seq)
                 try:
                     assert uniprot_seq[
-                        pos - 1 + ou * (-1 if dataset=="s669" else 0)] == wt,\
+                        pos - 1 + ou*(-1 if dataset!='fireprot' else 0)]== wt,\
                         ('Wrote a mutation whose wt disagrees with uniprot_seq')
                 except Exception as e:
                     print(e, code, wt, pos, mut)
 
                 # generation of the mutant sequence
-                uniprot_seq[pos - 1 + ou * (-1 if dataset=="s669" else 0)] = mut
+                uniprot_seq[pos-1+ou*(-1 if dataset!='fireprot' else 0)] = mut
                 mutated_uniprot_seq = ''.join(uniprot_seq)
 
                 # write to the Tranception file
-                trance.write(f'{mutated_uniprot_seq},'
-                             f'{wt}{pos + ou * (-1 if dataset=="s669" else 0)}'
-                             f'{mut}\n')
+                trance.write(f'{mutated_uniprot_seq},{wt}\
+                               {pos + ou * (-1 if dataset!="fireprot" else 0)}\
+                               {mut}\n')
                 
                 # edge case where structure is too large (happens once)
-                if (pos + ou * (-1 if dataset=="s669" else 0) - ws > 1022):
+                if (pos + ou * (-1 if dataset!='fireprot' else 0) - ws > 1022):
                     print('mutation occurs outside required window:', 
                             code, wt, pos, mut)
                 else:
-                    new_pos = pos + ou * (-1 if dataset=="s669" else 0) - ws
+                    new_pos = pos + ou * (-1 if dataset!='fireprot' else 0) - ws
                     msa.write(f',{wt}{new_pos}{mut}\n')
 
 
@@ -531,7 +531,7 @@ def get_rosetta_mapping(code, chain, group, dataset,
              'offset_up', 'pdb_ungapped', 'mutant_pdb_file']):
 
         # indexing is already based on structure, UniProt offset is irrelevant
-        if dataset == 's669':
+        if dataset != 'fireprot':
             ou = 0 
 
         rosparser = PDBParser(QUIET=True)

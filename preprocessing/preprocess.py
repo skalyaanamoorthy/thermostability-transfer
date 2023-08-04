@@ -77,8 +77,9 @@ def main(args):
         # assign a unique identifier for matching tables later on
         db['uid'] = db['Protein'].str[:4] + '_' + db['Mut_seq'].str[1:]
     else:
-        raise AssertionError('The database name must contain its identity;\
-            either FireProtDB or S669')
+        print('Running with a custom user-specified database\n' 
+              'This is NOT desired behaviour for reproducing benchmarks')
+        dataset = args.dataset
 
     hit = pd.DataFrame() # collection of successfully parsed mutations
 
@@ -106,18 +107,19 @@ def main(args):
             code, chain, BIO_ASSEMBLIES_DIR
             )
 
-        # get the uniprot sequence corresponding to the entry
-        if dataset == 's669':
-            uniprot_seq, accession = utils.get_uniprot_s669(
-                code, chain, SEQUENCES_DIR
-                )
-        else:
+        if dataset == 'fireprot':
             # in the FireProtDB, the UniProt sequence is provided
             uniprot_seq = group['sequence'].head(1).item()
             with open(
                 os.path.join(SEQUENCES_DIR, 'fasta_up', f'{code}_{chain}.fa'), 
             'w') as f:
                 f.write(f'>{code}_{chain}\n{uniprot_seq}')
+
+        # assume we need to get the uniprot sequence corresponding to the entry
+        else:
+            uniprot_seq, accession = utils.get_uniprot_s669(
+                code, chain, SEQUENCES_DIR
+                )
         
         # get the pdb sequence corresponding to the entry
         chains = utils.extract_structure(
@@ -159,18 +161,19 @@ def main(args):
         # now we process and validate individual mutations from the database
         for name, _ in group.groupby(
             ['wild_type', 'position', 'mutation']
-            if dataset=='fireprot' else 'Mut_seq'
+            if dataset != 's669' else 'Mut_seq'
             ):
 
             # get the wild-type amino acid, 
             # the position of the mutation, 
             # and the mutant residue identity one-letter code
-            if dataset == 'fireprot':
-                wt, pos, mut = name
-            elif dataset == 's669':
+
+            if dataset == 's669':
                 wt = name[0]
                 pos = int(name[1:-1])
                 mut = name[-1]
+            else:
+                wt, pos, mut = name
 
             # get offsets for interconversion between uniprot and pdb positions
             offset_up = utils.get_offsets(wt, pos, dataset, alignment_df)
@@ -181,14 +184,14 @@ def main(args):
                 offset_pdb = offset_up
             # s669 mutation labels correspond to pdb entries; 
             # offset_up is used (in reverse) to map to uniprot
-            elif dataset == 's669':
+            else:
                 # no offset since we are operating in pdb coordinates
                 offset_pdb = 0
 
             # still validate offset and ensure it correctly maps to uniprot
             # the -1 converts to zero-based indexing
             if uniprot_seq[
-                int(pos) - 1 - (offset_up if dataset=='s669' else 0)
+                int(pos) - 1 - (offset_up if dataset!='fireprot' else 0)
                 ] != wt:
                 print(code, wt, pos, mut, 
                 'uniprot wt does not match with provided mutation'
@@ -259,13 +262,14 @@ def main(args):
             os.path.join(output_path, DATA_DIR, f'miss_{dataset}.csv')
             )
 
-    if dataset == 'fireprot':
+    # remove overlapping columns
+    if dataset == 's669':
+        db = db.drop(['code', 'chain'], axis=1)
+    else:
         db = db.drop(
             ['code', 'chain', 'wild_type', 'position', 'mutation'], axis=1
             )
-    elif dataset == 's669':
-        db = db.drop(['code', 'chain'], axis=1)
-    
+
     # combine all the original mutation information from FireProtDB with hits
     out = db.merge(hit, on=['uid'])
     # check how many mutants could not be processed or validated
@@ -369,6 +373,9 @@ if __name__=='__main__':
     parser.add_argument('--dataset', help='name of database (s669/fireprot), \
                         assuming you are in the root of the repository',
                       default='fireprot')
+    parser.add_argument('--db_loc', help='location of database,\
+                        only specify if you are using a custom DB',
+                       default=None)
     parser.add_argument('-o', '--output_root', 
                         help='root of folder to store outputs',
                         default='.')
@@ -390,5 +397,11 @@ if __name__=='__main__':
     elif args.dataset.lower() in ['s669', 's461']:
         args.db_loc = './data/Data_s669_with_predictions.csv'
         args.inverse = True
+    else:
+        print('Inferred use of user-created database. Note: this must '
+              'contain columns for code, wild_type, position, mutation. '
+              'position must correspond to PDB sequence')
+        assert args.dataset != 'fireprot'
+        assert args.db_loc is not None
 
     main(args)
