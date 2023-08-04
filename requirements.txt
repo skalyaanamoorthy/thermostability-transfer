@@ -56,7 +56,6 @@ pyarrow
 Pygments
 pyparsing
 python-dateutil
-pytorch-triton
 pytz
 PyYAML
 pyzmq
