@@ -77,7 +77,7 @@ You will need to compile korpm with the gcc compiler:
 
 Like the above methods, there is a wrapper script in inference_scripts where you will need to specify the installation directory with the argument --korpm_loc.
 
-## Preprocessing Setup
+## Preprocessing
 
 In order to perform inference you will first need to preprocess the structures and sequences. Follow the above instructions before proceeding.
 
@@ -104,7 +104,11 @@ To run inference on either FireProtDB or S669/S461 you will need to preprocess t
 Note that the output dataframe `./data/fireprot_mapped.csv` is already generated, but the other files are not prepared.
 It is expected to see the message '507 observations lost from the original dataset' for FireProtDB. Note that you will also have to do this for S669. S461 is a subset of S669, so you can call either dataset for the `--dataset` argument, and the same preprocessing will occur; the subset will be generated in the analysis notebook (see Analysis section). For inverse/reversion mutations on S669/461, you will use the predicted mutant structures in the structures_mut folder, which we obtained from the authors (thank you, Drs. Birolo and Fariselli): https://academic.oup.com/bib/article/23/2/bbab555/6502552. They will have to be preprocessed as well . We also obtained the original data file Data_s669_with_predictions.csv from the Supplementary information of this paper, adjusting one record to accurately reflect the structure. Citation: Pancotti, C. et al. Predicting protein stability changes upon single-point mutation: a thorough comparison of the available tools on a new dataset. Briefings in Bioinformatics 23, bbab555 (2022).
 
-`python preprocessing.py --dataset s669`
+`python preprocessing/preprocessing.py --dataset s669`
+
+You can also use a custom database for inference. The preprocessing script will facilitate making predictions (and MSAs) with all methods by collecting the corresponding UniProt sequence (if available) as well as modelling, preprocessing, and validating all structures as required. To use this functionality, you can create a csv file with columns for code (PDB ID) chain (chain in PDB structure), wild_type (one letter code for wild-type identity at mutated position), position (corresponds to the **index in the PDB sequence (not PDB coordinates)**, and mutation (one-letter code), with as many rows as desired. Then run preprocessing pointing to the database and giving it a desired name which will appear in the prefix:
+
+`python preprocessing/preprocessing.py --dataset MY_CUSTOM_NAME --db_loc ./data/my_custom_dataset.csv`
 
 ## Running Inference
 
