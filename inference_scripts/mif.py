@@ -31,9 +31,9 @@ def score_backbones(args):
     model = model.eval().to(device)
 
     print('Loading data...')
-    df = pd.read_csv(args.db_location, index_col=0).reset_index()
+    df = pd.read_csv(args.db_loc, index_col=0).reset_index()
     df2 = df.groupby('uid').first()
-    dataset = 'fireprot' if 'fireprot' in args.db_location else 's669'
+    dataset = args.dataset
 
     logps = pd.DataFrame(index=df2.index,columns=[args.model+'_dir', f'runtime_{args.model}_dir'])
 
@@ -95,9 +95,9 @@ def score_backbones(args):
     df.to_csv(args.output)
 
 def score_backbones_inverse(args):
-    df = pd.read_csv(args.db_location, index_col=0).reset_index()
+    df = pd.read_csv(args.db_loc, index_col=0).reset_index()
     df2 = df.groupby('uid').first()
-    dataset = 'fireprot' if 'fireprot' in args.db_location else 's669'
+    dataset = args.dataset
 
     model, collater = load_model_and_alphabet(args.model)
 
@@ -173,7 +173,7 @@ if __name__ == '__main__':
             help='One of mif or mifst',
     )
     parser.add_argument(
-            '--db_location', type=str,
+            '--db_loc', type=str,
             help='location of the mapped database (fireprot/s669)_mapped.csv',
     )
     parser.add_argument(
@@ -188,6 +188,14 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    if 'fireprot' in args.db_loc.lower():
+        args.dataset = 'fireprot'
+    elif 's669' in args.db_loc.lower() or 's461' in args.db_loc.lower():
+        args.dataset = 's669'
+    else:
+        print('Inferred use of user-created database, prepending \"custom\" to output name')
+        args.dataset = 'custom'
+        
     if args.inverse:
         score_backbones_inverse(args)
     else:

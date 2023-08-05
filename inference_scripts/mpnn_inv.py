@@ -28,7 +28,7 @@ def make_tied_positions_for_homomers(pdb_dict_list):
     return my_dict
 
 def main(args):
-    df = pd.read_csv(args.db_location, index_col=0).reset_index()
+    df = pd.read_csv(args.db_loc, index_col=0).reset_index()
     d = {'CYS': 'C', 'ASP': 'D', 'SER': 'S', 'GLN': 'Q', 'LYS': 'K', 'ILE': 'I', 'PRO': 'P', 
          'THR': 'T', 'PHE': 'F', 'ASN': 'N', 'GLY': 'G', 'HIS': 'H', 'LEU': 'L', 'ARG': 'R',
          'TRP': 'W', 'ALA': 'A', 'VAL':'V',  'GLU': 'E', 'TYR': 'Y', 'MET': 'M', 'MSE': 'M'}
@@ -188,9 +188,8 @@ if __name__ == "__main__":
         #parser.add_argument('--pdb_folder', type=str)
         parser.add_argument('--model_weights', type=str,
                             default='/home/sareeves/scratch/ProteinMPNN/vanilla_model_weights')
-        parser.add_argument('--db_location', type=str, default='./s669_mapped.csv')
+        parser.add_argument('--db_loc', type=str, default='./s669_mapped.csv')
         parser.add_argument('--output', '-o', type=str, default='./s669_mapped_preds.csv')
-        parser.add_argument('--dataset', type=str, default='s669')
         parser.add_argument('--noise', type=int, default=20)
         parser.add_argument('--bbnoise', type=float, default=0.00)
         parser.add_argument('--proteinmpnn_repo', type=str, 
@@ -200,5 +199,13 @@ if __name__ == "__main__":
         sys.path.append(args.proteinmpnn_repo)
         from protein_mpnn_utils import tied_featurize, parse_PDB
         from protein_mpnn_utils import StructureDatasetPDB, ProteinMPNN
+
+        if 'fireprot' in args.db_loc.lower():
+            args.dataset = 'fireprot'
+        elif 's669' in args.db_loc.lower() or 's461' in args.db_loc.lower():
+            args.dataset = 's669'
+        else:
+            print('Inferred use of user-created database, prepending \"custom\" to output name')
+            args.dataset = 'custom'
 
         main(args)

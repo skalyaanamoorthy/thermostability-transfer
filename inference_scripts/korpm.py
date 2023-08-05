@@ -4,9 +4,9 @@ import sys
 import argparse
 
 def main(args):
-    db = pd.read_csv(args.db_location)
+    db = pd.read_csv(args.db_loc)
 
-    if 'fireprot' in args.db_location.lower():
+    if 'fireprot' in args.db_loc.lower():
         dataset = 'fireprot'
         db = db.groupby('uid').first()
         # mutation is defined by sequence, but we are using structure
@@ -18,7 +18,7 @@ def main(args):
         # single mutation which KORPM cannot handle
         db = db.loc[~(db['korpm_mut'].str.contains('LA196'))]
 
-    elif 's669' in args.db_location.lower():
+    elif 's669' in args.db_loc.lower():
         dataset = 's669'
         # just to keep consistent with the format above
         db = db.groupby('uid').first()
@@ -46,10 +46,15 @@ def main(args):
                 db['position'].astype(str) + db['wild_type']
             db['korpm_struct'] = db['code'].str.lower() + db['chain'] + '_' + \
                 db['wild_type'] + db['position'].astype(str) + db['mutation']
+            db = db[['korpm_struct', 'korpm_mut']]
 
     else:
-        print('Database name must contain either "s669" or "fireprot"')
-        exit()
+        print('Inferred custom database')
+        # mutation is defined using structure
+        db['korpm_mut'] = db['wild_type'] + db['chain'] + \
+            db['position'].astype(str) + db['mutation']
+        db['korpm_struct'] = db['code'] + '_' + db['chain']
+        db = db[['korpm_struct', 'korpm_mut']]  
 
     db.to_csv(
         os.path.join(args.korpm_loc, f'{dataset}_korpm.csv'), 
@@ -102,7 +107,7 @@ if __name__ == '__main__':
             help='location of preprocessed structures from preprocess.py'
     )
     parser.add_argument(
-            '--db_location', type=str, default='./data/fireprot_mapped.csv',
+            '--db_loc', type=str, default='./data/fireprot_mapped.csv',
             help='location of the mapped database (fireprot/s669)_mapped.csv',
     )
     parser.add_argument(
@@ -116,4 +121,6 @@ if __name__ == '__main__':
     )
 
     args = parser.parse_args()
+    if args.inverse:
+        args.structures_dir ='./structures_mut'
     main(args)

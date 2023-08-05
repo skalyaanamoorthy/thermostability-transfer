@@ -33,6 +33,7 @@ def main(args):
     ALIGNMENTS_DIR = os.path.join(output_path, 'alignments')
     SEQUENCES_DIR = os.path.join(output_path, 'sequences')
     WINDOWS_DIR = os.path.join(output_path, 'windows')
+    # this defines where results from Rosetta will be stored, for organization
     RESULTS_DIR = os.path.join(output_path, 'results')
     DATA_DIR = os.path.join(output_path, 'data')
 
@@ -79,6 +80,12 @@ def main(args):
     else:
         print('Running with a custom user-specified database\n' 
               'This is NOT desired behaviour for reproducing benchmarks')
+        db['code'] = db['code'].str.upper()
+        for c in ['code', 'chain', 'wild_type', 'position', 'mutation']:
+            assert c in db.columns
+        if not 'uid' in db.columns:
+            db['uid'] = db['code'] + '_' \
+                + db['position'].astype(str) + db['mutation']
         dataset = args.dataset
 
     hit = pd.DataFrame() # collection of successfully parsed mutations

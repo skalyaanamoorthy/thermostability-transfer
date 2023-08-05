@@ -45,7 +45,7 @@ def make_tied_positions_for_homomers(pdb_dict_list):
     return my_dict
 
 def main(args):
-    df = pd.read_csv(args.db_location, index_col=0).reset_index()
+    df = pd.read_csv(args.db_loc, index_col=0).reset_index()
     d = {'CYS': 'C', 'ASP': 'D', 'SER': 'S', 'GLN': 'Q', 'LYS': 'K', 'ILE': 'I', 'PRO': 'P', 
          'THR': 'T', 'PHE': 'F', 'ASN': 'N', 'GLY': 'G', 'HIS': 'H', 'LEU': 'L', 'ARG': 'R',
          'TRP': 'W', 'ALA': 'A', 'VAL':'V',  'GLU': 'E', 'TYR': 'Y', 'MET': 'M', 'MSE': 'M'}
@@ -205,7 +205,7 @@ def main(args):
     
 if __name__ == "__main__":
         parser = argparse.ArgumentParser()
-        parser.add_argument('--db_location', type=str, default='./data/fireprot_mapped.csv')
+        parser.add_argument('--db_loc', type=str, default='./data/fireprot_mapped.csv')
         parser.add_argument('--output', '-o', type=str, default='./data/fireprot_mapped_preds.csv')
         parser.add_argument('--noise', type=int, default=20)
         parser.add_argument('--bbnoise', type=float, default=0.00)
@@ -216,11 +216,11 @@ if __name__ == "__main__":
         from protein_mpnn_utils import tied_featurize, parse_PDB
         from protein_mpnn_utils import StructureDatasetPDB, ProteinMPNN
 
-        if 'fireprot' in args.db_location.lower():
+        if 'fireprot' in args.db_loc.lower():
             args.dataset = 'fireprot'
-        elif 's669' in args.db_location.lower() or 's461' in args.db_location.lower():
+        elif 's669' in args.db_loc.lower() or 's461' in args.db_loc.lower():
             args.dataset = 's669'
         else:
-            raise AssertionError('--db_location must contain either "fireprot" or "s669" or "s461"')
+            raise AssertionError('--db_loc must contain either "fireprot" or "s669" or "s461"')
 
         main(args)

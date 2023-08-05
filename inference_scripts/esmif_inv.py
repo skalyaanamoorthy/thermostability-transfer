@@ -14,7 +14,7 @@ import esm.inverse_folding
 def score_singlechain_backbones(model, alphabet, args):
     # load data
     print('Loading data and running in singlechain mode...')
-    df = pd.read_csv(args.db_location, index_col=0).reset_index()
+    df = pd.read_csv(args.db_loc, index_col=0).reset_index()
     df2 = df.groupby('uid').first()
     logps = pd.DataFrame(index=df2.index,columns=['esmif_monomer_inv', 'runtime_esmif_monomer_inv'])
 
@@ -75,7 +75,7 @@ def main():
             description='Score sequences based on a given structure.'
     )
     parser.add_argument(
-            '--db_location', type=str,
+            '--db_loc', type=str,
             help='location of the mapped database (fireprot or s669)',
     )
     parser.add_argument(

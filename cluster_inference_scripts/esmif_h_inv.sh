@@ -15,4 +15,4 @@ module load StdEnv/2020  gcc/9.3.0  cuda/11.4
 source ../data/pslm/bin/activate
 
 if ! test -e '../data/s669_mapped_preds.csv'; then cp '../data/s669_mapped.csv' '../data/s669_mapped_preds.csv'; fi
-python ../inference_scripts/esmif_h.py --db_location '../data/s669_mapped.csv' --output '../data/s669_mapped_preds.csv' --inverse
+python ../inference_scripts/esmif_h.py --db_loc '../data/s669_mapped.csv' --output '../data/s669_mapped_preds.csv' --inverse

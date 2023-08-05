@@ -25,9 +25,9 @@ def score_backbones(model, alphabet, args):
     # load data
     suffix = f'{"multimer" if args.multimer else "monomer"}{"_masked" if args.mask_coords else ""}_dir'
     print(f'Loading data and running in {suffix} mode...')
-    df = pd.read_csv(args.db_location, index_col=0).reset_index()
+    df = pd.read_csv(args.db_loc, index_col=0).reset_index()
     df2 = df.groupby('uid').first()
-    dataset = 'fireprot' if 'fireprot' in args.db_location else 's669'
+    dataset = args.dataset
 
     device = 'cuda:0'
     model = model.to(device)
@@ -98,9 +98,9 @@ def score_backbones(model, alphabet, args):
 def score_backbones_inverse(model, alphabet, args):
     suffix = f'{"multimer" if args.multimer else "monomer"}{"_masked" if args.mask_coords else ""}_inv'
     print(f'Loading data and running in {suffix} mode...')
-    df = pd.read_csv(args.db_location, index_col=0).reset_index()
+    df = pd.read_csv(args.db_loc, index_col=0).reset_index()
     df2 = df.groupby('uid').first()
-    dataset = 'fireprot' if 'fireprot' in args.db_location else 's669'
+    dataset = args.dataset
 
     device = 'cuda:0'
     model = model.to(device)
@@ -173,7 +173,7 @@ def main():
             description='Score sequences based on a given structure.'
     )
     parser.add_argument(
-            '--db_location', type=str,
+            '--db_loc', type=str,
             help='location of the mapped database (file name should contain fireprot or s669)',
     )
     parser.add_argument(
@@ -198,6 +198,14 @@ def main():
 
     model, alphabet = esm.pretrained.esm_if1_gvp4_t16_142M_UR50()
     model = model.eval()
+
+    if 'fireprot' in args.db_loc.lower():
+        args.dataset = 'fireprot'
+    elif 's669' in args.db_loc.lower() or 's461' in args.db_loc.lower():
+        args.dataset = 's669'
+    else:
+        print('Inferred use of user-created database, prepending \"custom\" to output name')
+        args.dataset = 'custom'
 
     if args.inverse:
         score_backbones_inverse(model, alphabet, args)

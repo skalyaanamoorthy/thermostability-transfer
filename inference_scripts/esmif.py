@@ -14,15 +14,13 @@ import esm.inverse_folding
 from copy import deepcopy
 
 
-
-
 def score_singlechain_backbones(model, alphabet, args):
     # load data
     print('Loading data and running in singlechain mode...')
-    df = pd.read_csv(args.db_location, index_col=0).reset_index()
+    df = pd.read_csv(args.db_loc, index_col=0).reset_index()
     df2 = df.groupby('uid').first()
     logps = pd.DataFrame(index=df2.index,columns=[f'esmif_monomer{"_masked" if args.masked else "_"}dir', f'runtime_esmif_monomer{"_masked" if args.masked else "_"}dir'])
-    dataset = 'fireprot' if 'fireprot' in args.db_location else 's669'
+    dataset = args.dataset
 
     # check if a GPU is available and if so, use it
     device = args.device if torch.cuda.is_available() else 'cpu'
@@ -78,10 +76,10 @@ def score_singlechain_backbones(model, alphabet, args):
 def score_multichain_backbones(model, alphabet, args):
     # load data
     print('Loading data and running in multichain mode...')
-    df = pd.read_csv(args.db_location, index_col=0).reset_index()
+    df = pd.read_csv(args.db_loc, index_col=0).reset_index()
     df2 = df.groupby('uid').first()
     logps = pd.DataFrame(index=df2.index,columns=[f'esmif_multimer{"_masked" if args.masked else "_"}dir', f'runtime_esmif_multimer{"_masked" if args.masked else "_"}dir'])
-    dataset = 'fireprot' if 'fireprot' in args.db_location else 's669' 
+    dataset = args.dataset
 
     # check if a GPU is available and if so, use it
     device = args.device if torch.cuda.is_available() else 'cpu'
@@ -150,7 +148,7 @@ def main():
             description='Score sequences based on a given structure.'
     )
     parser.add_argument(
-            '--db_location', type=str,
+            '--db_loc', type=str,
             help='location of the mapped database (fireprot or s669)',
     )
     parser.add_argument(
@@ -177,6 +175,14 @@ def main():
 
     model, alphabet = esm.pretrained.esm_if1_gvp4_t16_142M_UR50()
     model = model.eval()
+
+    if 'fireprot' in args.db_loc.lower():
+        args.dataset = 'fireprot'
+    elif 's669' in args.db_loc.lower() or 's461' in args.db_loc.lower():
+        args.dataset = 's669'
+    else:
+        print('Inferred use of user-created database, prepending \"custom\" to output name')
+        args.dataset = 'custom'
 
     if args.multimer:
         score_multichain_backbones(model, alphabet, args)

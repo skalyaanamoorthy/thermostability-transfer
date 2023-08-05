@@ -12,9 +12,9 @@ from esm import pretrained
 
 def score_sequences(args):
 
-    df = pd.read_csv(args.db_location)
+    df = pd.read_csv(args.db_loc)
     df2 = df.groupby('uid').first()
-    dataset = 'fireprot' if 'fireprot' in args.db_location else 's669'
+    dataset = args.dataset
 
     logps = pd.DataFrame(index=df2.index,columns=[f'esm1v_{i+1}_dir' for i in range(5)] + [f'runtime_esm1v_{i+1}_dir' for i in range(5)])
 
@@ -82,7 +82,7 @@ def main():
             description='Score sequences based on a given structure.'
     )
     parser.add_argument(
-            '--db_location', type=str,
+            '--db_loc', type=str,
             help='location of the mapped database (file name should contain fireprot or s669)',
     )
     parser.add_argument(
@@ -100,6 +100,14 @@ def main():
             help='use the mutant structure and apply a reversion mutation'
     )
     args = parser.parse_args()
+
+    if 'fireprot' in args.db_loc.lower():
+        args.dataset = 'fireprot'
+    elif 's669' in args.db_loc.lower() or 's461' in args.db_loc.lower():
+        args.dataset = 's669'
+    else:
+        print('Inferred use of user-created database, prepending \"custom\" to output name')
+        args.dataset = 'custom'
 
     score_sequences(args)
 

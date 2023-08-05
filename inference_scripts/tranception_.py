@@ -17,7 +17,7 @@ def score_sequence(args):
     Main script to score sets of mutated protein sequences (substitutions or indels) with Tranception.
     """
 
-    df = pd.read_csv(args.db_location, index_col=0)
+    df = pd.read_csv(args.db_loc, index_col=0)
     df2 = df.reset_index().groupby('uid').first()
     trance = pd.DataFrame(columns=[f'tranception_dir', f'runtime_tranception_dir'])
 
@@ -83,7 +83,7 @@ def score_sequence(args):
                 print(e)
                 continue
                 
-            #m = pd.read_csv(os.path.join('DMS_tranception', f'{code}_{chain}_{"s669" if "s669" in args.db_location else "fireprot"}.csv'))
+            #m = pd.read_csv(os.path.join('DMS_tranception', f'{code}_{chain}_{"s669" if "s669" in args.db_loc else "fireprot"}.csv'))
             m = pd.read_csv(DMS_file_name, low_memory=False)
             new = m.set_index('mutated_sequence').join(all_scores.set_index('mutated_sequence'))
             new['uid2'] = code + '_' + new['mutant'].str[1:]
@@ -94,7 +94,7 @@ def score_sequence(args):
             pbar.update(1)
         
     df = pd.read_csv(args.output, index_col=0)
-    if 's669' in args.db_location:
+    if 's669' in args.db_loc:
         #trance.to_csv('./trance_s669.csv')
         df = df.reset_index()
         df['uid2'] = df['code'] + '_' + (df['position'].astype(int) - df['offset_up'].astype(int)).astype(str) + df['mutation'].str[-1]
@@ -102,7 +102,7 @@ def score_sequence(args):
         df = trance.combine_first(df)
         df = df.reset_index(drop=True)
         df = df.set_index('uid')
-    elif 'fireprot' in args.db_location:
+    elif 'fireprot' in args.db_loc:
         #trance.to_csv('./trance_fp.csv')
         df = trance.combine_first(df)
     df.to_csv(args.output)
@@ -121,7 +121,7 @@ if __name__ == '__main__':
     
     # added args
     parser.add_argument(
-            '--db_location', type=str,
+            '--db_loc', type=str,
             help='location of the mapped database (file name should contain fireprot or s669)',
     )
     #parser.add_argument(

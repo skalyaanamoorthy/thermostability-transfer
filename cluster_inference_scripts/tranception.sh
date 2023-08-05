@@ -15,6 +15,6 @@ module load arrow/10.0.1
 source ../pslm/bin/activate
 
 if ! test -e '../data/s669_mapped_preds.csv'; then cp '../data/s669_mapped.csv' '../data/s669_mapped_preds.csv'; fi
-python ../inference_scripts/tranception_.py --checkpoint ~/software/Tranception_Large --num_workers 1 --db_location '../data/fireprot_mapped.csv' --output '../data/fireprot_mapped_preds.csv' --tranception_loc ~/software/Tranception
+python ../inference_scripts/tranception_.py --checkpoint ~/software/Tranception_Large --num_workers 1 --db_loc '../data/fireprot_mapped.csv' --output '../data/fireprot_mapped_preds.csv' --tranception_loc ~/software/Tranception
 if ! test -e '../data/fireprot_mapped_preds.csv'; then cp '../data/fireprot_mapped.csv' '../data/fireprot_mapped_preds.csv'; fi
-python ../inference_scripts/tranception_.py --checkpoint ~/software/Tranception_Large --num_workers 1 --db_location '../data/fireprot_mapped.csv' --output '../data/fireprot_mapped_preds.csv' --tranception_loc ~/software/Tranception
+python ../inference_scripts/tranception_.py --checkpoint ~/software/Tranception_Large --num_workers 1 --db_loc '../data/fireprot_mapped.csv' --output '../data/fireprot_mapped_preds.csv' --tranception_loc ~/software/Tranception

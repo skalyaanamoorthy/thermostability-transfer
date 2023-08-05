@@ -23,10 +23,11 @@ from evcouplings import align
 def subsample(infile, nseqs, reps):
         aln = align.Alignment.from_file(open(infile, 'r'), format='a3m')
         aln.set_weights()
-        with open('neff.csv', 'a') as f:
-            f.write(f"{infile.split('/')[-1].split('_')[0]}, {sum(aln.weights)}\n")
-        outfolder = '/'.join(infile.split('/')[:-1]) + '/subsampled/'
+        with open(os.path.join(os.path.dirname(os.path.dirname(infile)), 'neff.csv'), 'a') as f:
+            f.write(f"{infile.split('/')[-1].split('_')[0]},{sum(aln.weights)},{len(aln[0])}\n")
+        outfolder = os.path.join(os.path.dirname(infile), 'subsampled')
         os.makedirs(outfolder, exist_ok=True)
+        print('Example weights', aln.weights[:10])
 
         if len(aln) < nseqs:
             print(len(aln))
@@ -74,7 +75,7 @@ def read_msa(filename: str, nseq: int) -> List[Tuple[str, str]]:
     The input file must be in a3m format (although we use the SeqIO fasta parser)
     for remove_insertions to work properly.
     """
-    msa = [(record.description, remove_insertions(str(record.seq)))
+    msa = [(record.description, remove_insertions(str(record.seq)[:1022]))
             for record in itertools.islice(SeqIO.parse(filename, "fasta"), nseq)
           ]
     return msa
@@ -82,9 +83,9 @@ def read_msa(filename: str, nseq: int) -> List[Tuple[str, str]]:
 
 def score_sequences(args):
 
-    df = pd.read_csv(args.db_location, index_col=0).reset_index()
+    df = pd.read_csv(args.db_loc, index_col=0).reset_index()
     df2 = df.groupby('uid').first()
-    dataset = 'fireprot' if 'fireprot' in args.db_location else 's669'
+    dataset = args.dataset
 
     logps = pd.DataFrame(index=df2.index,columns=[f'msa_{i+1}_dir' for i in range(5)] + [f'runtime_msa_{i+1}_dir' for i in range(5)])
 
@@ -111,7 +112,7 @@ def score_sequences(args):
                 print(msa)
                 if not os.path.exists(msa):
                     print(f'Only 1 subsampled alignment for {code}, skipping to next protein')
-                    continue
+                    break
         
                 for uid, row in group.iterrows():
                     with torch.no_grad():
@@ -169,7 +170,7 @@ def main():
             description='Score sequences based on a given structure.'
     )
     parser.add_argument(
-            '--db_location', type=str,
+            '--db_loc', type=str,
             help='location of the mapped database (file name should contain fireprot or s669)',
     )
     #parser.add_argument(
@@ -183,6 +184,14 @@ def main():
                   Should be a copy of the mapped database with additional cols'
     )
     args = parser.parse_args()
+
+    if 'fireprot' in args.db_loc.lower():
+        args.dataset = 'fireprot'
+    elif 's669' in args.db_loc.lower() or 's461' in args.db_loc.lower():
+        args.dataset = 's669'
+    else:
+        print('Inferred use of user-created database, prepending \"custom\" to output name')
+        args.dataset = 'custom'
 
     score_sequences(args)
 
