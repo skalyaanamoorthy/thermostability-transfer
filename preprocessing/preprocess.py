@@ -52,7 +52,8 @@ def main(args):
     wrong_chains = {'1ACB': 'I', '1AON': 'O', '1AYF': 'B', '1ANT': 'L',
                     '1GUY': 'C', '1HK0': 'X', '1HYN': 'P', '1RN1': 'C',
                     '1RTP': '1', '1ZNJ': 'B', '2CI2': 'I', '5CRO': 'O',
-                    '1IV7': 'A', '3L15': 'A', '4N6V': '2'}
+                    '1IV7': 'A', '3L15': 'A', '4N6V': '2', '1YU5': 'X',
+                    '2L7F': 'P'}
     
     orig_chains = {'1IV7': 'B', '3L15': 'B', '4N6V': '0'}
 
@@ -129,7 +130,7 @@ def main(args):
                 )
         
         # get the pdb sequence corresponding to the entry
-        chains = utils.extract_structure(
+        chains, is_nmr = utils.extract_structure(
             code, chain, d, prot_path, prot_file, STRUCTURES_DIR
             )
         pdb_seq = chains[chain]
@@ -138,7 +139,7 @@ def main(args):
         # align the pdb sequence to the uniprot sequence
         alignment_df, window_start, pdb_ungapped, uniprot_seq = \
             utils.align_sequence_structure(
-                code, chain, pdb_seq, dataset, d,
+                code, chain, pdb_seq, dataset,
                 SEQUENCES_DIR, WINDOWS_DIR, ALIGNMENTS_DIR, uniprot_seq
                 )
 
@@ -166,7 +167,7 @@ def main(args):
         pdb_file = os.path.join(STRUCTURES_DIR, f'{code}_{chain}.pdb')
 
         # now we process and validate individual mutations from the database
-        for name, _ in group.groupby(
+        for name, group2 in group.groupby(
             ['wild_type', 'position', 'mutation']
             if dataset != 's669' else 'Mut_seq'
             ):
@@ -181,6 +182,13 @@ def main(args):
                 mut = name[-1]
             else:
                 wt, pos, mut = name
+
+            if args.infer_pos:
+                try:
+                    pos = utils.infer_pos(group2, pdb_seq)
+                except:
+                    print(name)
+                    continue
 
             # get offsets for interconversion between uniprot and pdb positions
             offset_up = utils.get_offsets(wt, pos, dataset, alignment_df)
@@ -234,13 +242,13 @@ def main(args):
 
                 new_hit = pd.DataFrame({0: {
                     'code':code, 'wild_type':wt, 'position':pos, 'mutation':mut,
-                    'chain':chain, 'offset_up':offset_up,
+                    'chain':chain, 'offset_up':offset_up, 'is_nmr': is_nmr,
                     # compensate numbering error
                     'offset_robetta': '-11' if code=='3L15' else '0',
                     'pdb_ungapped': pu, 'uid': code + '_' + str(pos) + mut, 
                     'uniprot_seq': uniprot_seq, 'window_start': window_start, 
                     'pdb_file': pdb_file,'mutant_pdb_file': mutant_pdb_file,
-                    'multimer': multimer, 'msa_file': orig_msa,
+                    'multimer': multimer, 'msa_file': orig_msa, 
                     'tranception_dms': os.path.join(output_path,
                     'DMS_Tranception', f'{code}_{chain}_{dataset}.csv'),
                 }}).T
@@ -397,6 +405,7 @@ if __name__=='__main__':
             +' only use when Rosetta relax has been run on Robetta structures')
     parser.add_argument('--verbose', action='store_true',
         help='whether to save which mutations could not be parsed')
+    parser.add_argument('--infer_pos', action='store_true')
 
     args = parser.parse_args()
     if args.dataset.lower() in ['fireprot', 'fireprotdb']:

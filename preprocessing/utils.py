@@ -15,6 +15,12 @@ from modeller.scripts import complete_pdb
 import pandas as pd
 
 
+d = {'CYS': 'C', 'ASP': 'D', 'SER': 'S', 'GLN': 'Q', 'LYS': 'K', 'ILE': 'I', 
+    'PRO': 'P', 'THR': 'T', 'PHE': 'F', 'ASN': 'N', 'GLY': 'G', 'HIS': 'H', 
+    'LEU': 'L', 'ARG': 'R', 'TRP': 'W', 'ALA': 'A', 'VAL':'V', 'GLU': 'E', 
+    'TYR': 'Y', 'MET': 'M','MSE': 'Z', 'UNK': '9', 'X': 'X'} 
+
+
 def download_assembly(code, chain, BIO_ASSEMBLIES_DIR):
     """
     Downloads the full (multimeric) biological assembly associated with a given
@@ -29,7 +35,8 @@ def download_assembly(code, chain, BIO_ASSEMBLIES_DIR):
         try:
             # for some reason this is the one bio assembly that doesn't exist
             # so use monomer instead
-            if code == '1W4E':
+            if code in ['1W4E', '1E0L', '1GYZ', '1H92', '1QLY', '1URF', '1V1C',
+                        '1W4F', '1W4G', '1W4H']:
                 urllib.request.urlretrieve(
                     f'http://files.rcsb.org/download/{code}.pdb.gz',
                     prot_path
@@ -181,7 +188,7 @@ def extract_structure(code, chain, d, prot_path, prot_file, STRUCTURES_DIR):
 
     # the chains will end up getting renamed, as sometimes in the assembly
     # two chains will share a name, causing errors
-    chain_names = 'ABCDEFGHIJKLMNOPQRSTUVWXYZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ'
+    chain_names = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
     lines = gzip.open(prot_path, 'rt').readlines()
 
     # chain whose sequence we want (becomes mutated)
@@ -190,6 +197,7 @@ def extract_structure(code, chain, d, prot_path, prot_file, STRUCTURES_DIR):
     new_idx = -1
     skip_ter = False
     skip_hets = False
+    is_nmr = False
      
     # this section puts all structures in a consistent format
     # first, specify the output location used for inference
@@ -204,6 +212,9 @@ def extract_structure(code, chain, d, prot_path, prot_file, STRUCTURES_DIR):
 
             # multiple models usually implies NMR structures, but all bio-
             # assemblies have at least one model
+            if 'SOLUTION NMR' in line:
+                print('Treating NMR structure.')
+                is_nmr = True
             if line[0:5] == 'MODEL':
                 new_idx += 1
                 # select a new unique chain name
@@ -219,6 +230,8 @@ def extract_structure(code, chain, d, prot_path, prot_file, STRUCTURES_DIR):
                 continue
             # don't output this
             elif line[0:6] == 'ENDMDL':
+                if is_nmr:
+                    break
                 continue
             # rewrite lines with atom records according to the new designation
             elif line[0:4] == 'ATOM':
@@ -274,6 +287,8 @@ def extract_structure(code, chain, d, prot_path, prot_file, STRUCTURES_DIR):
                 skip_ter = True
                 continue
             f.write(line)
+    
+    assert target_chain_found
 
     # repair missing atoms / residues
     repair_pdb(target_structure, target_structure)
@@ -302,10 +317,10 @@ def extract_structure(code, chain, d, prot_path, prot_file, STRUCTURES_DIR):
     chains = {chain.id:[(residue.id[1], residue.resname) for residue in chain]\
         for chain in structure.get_chains()}
 
-    return chains
+    return chains, is_nmr
 
 
-def align_sequence_structure(code, chain, pdb_seq, dataset, d,
+def align_sequence_structure(code, chain, pdb_seq, dataset,
                              SEQUENCES_DIR, WINDOWS_DIR, ALIGNMENTS_DIR, 
                              uniprot_seq=None):
     """
@@ -623,3 +638,26 @@ def create_db_from_mutseq(code, pdb_seq, mut_seq, output_dir):
     df['uid'] = code + '_' + df['position'].astype(str) + df['mutation']
     df.to_csv(os.path.join(output_dir, 'muts.csv'))
     return df
+
+
+def infer_pos(group2, pdb_seq):
+    assert 'aa_seq' in group2.columns
+    pdb_ungapped = ''.join([d[res[1]] for res in pdb_seq])
+    aln = pairwise2.align.globalms(
+        group2['aa_seq'].head(1).item(), pdb_ungapped, 10, 5, -50, -1
+        )[0]
+    db_seq = aln.seqA
+    pdb_seq = aln.seqB
+    mismatch_indices = []
+    for idx, (aa1, aa2) in enumerate(zip(db_seq, pdb_seq)):
+        if aa2 == '-':
+            print('Unexpected insertion in PDB sequence')
+        if aa1 != '-' and aa2 != '-' and aa1 != aa2:
+            mismatch_indices.append(idx)
+
+    if len(mismatch_indices) != 1:
+        print(db_seq)
+        print(pdb_seq)
+    assert len(mismatch_indices) == 1
+    pos = mismatch_indices[0] + 1
+    return pos

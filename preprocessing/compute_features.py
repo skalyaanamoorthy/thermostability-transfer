@@ -169,7 +169,7 @@ def get_residue_accessibility(model, filename, target_chain):
     # get the target chain only
     df = pd.DataFrame(dssp_dict).T.loc[target_chain, :]
     df.index = pd.Series(df.index).apply(lambda x: x[1])
-    df = df.rename({0:'wild_type'}, axis=1)
+    df = df.rename({1:'wild_type', 2: 'SS', 3: 'rel_ASA'}, axis=1)
     return df
 
 
@@ -580,11 +580,10 @@ if __name__=='__main__':
 
     # cysteines in disulfide bonds have unusual names
     dssp.loc[dssp['wild_type'].isin(['a','b']), 'wild_type'] = 'C'
+    dssp = dssp[['code', 'wild_type', 'SS', 'rel_ASA', 'position']]
 
     # combine with DSSP information (SASA and secondary structure)
-    out = feat_2.merge(dssp[['code', 'wild_type', 1, 2, 'position']],
-        on=['code', 'wild_type', 'position'], how='left').rename(
-            {2: 'abs_ASA', 1: 'SS'}, axis=1)
+    out = feat_2.merge(dssp, on=['code', 'wild_type', 'position'], how='left')
 
     # undo offset
     if 'fireprot' in args.db_loc.lower():
