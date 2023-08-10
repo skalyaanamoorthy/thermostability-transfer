@@ -5,10 +5,10 @@ import argparse
 
 def main(args):
     db = pd.read_csv(args.db_loc)
+    db = db.groupby('uid').first()
 
     if 'fireprot' in args.db_loc.lower():
         dataset = 'fireprot'
-        db = db.groupby('uid').first()
         # mutation is defined by sequence, but we are using structure
         db['korpm_mut'] = db['wild_type'] + db['chain'] + \
             (db['position']+db['offset_up']).astype(str) + db['mutation']
@@ -21,8 +21,7 @@ def main(args):
     elif 's669' in args.db_loc.lower():
         dataset = 's669'
         # just to keep consistent with the format above
-        db = db.groupby('uid').first()
-
+        
         if not args.inverse:
             # mutation is defined using structure
             db['korpm_mut'] = db['wild_type'] + db['chain'] + \
@@ -50,6 +49,7 @@ def main(args):
 
     else:
         print('Inferred custom database')
+        dataset = 'custom'
         # mutation is defined using structure
         db['korpm_mut'] = db['wild_type'] + db['chain'] + \
             db['position'].astype(str) + db['mutation']

@@ -221,6 +221,7 @@ if __name__ == "__main__":
         elif 's669' in args.db_loc.lower() or 's461' in args.db_loc.lower():
             args.dataset = 's669'
         else:
-            raise AssertionError('--db_loc must contain either "fireprot" or "s669" or "s461"')
+            print('Inferred use of user-created database')
+            args.dataset = 'custom'
 
         main(args)

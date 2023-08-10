@@ -193,7 +193,7 @@ if __name__ == '__main__':
     elif 's669' in args.db_loc.lower() or 's461' in args.db_loc.lower():
         args.dataset = 's669'
     else:
-        print('Inferred use of user-created database, prepending \"custom\" to output name')
+        print('Inferred use of user-created database')
         args.dataset = 'custom'
         
     if args.inverse:
