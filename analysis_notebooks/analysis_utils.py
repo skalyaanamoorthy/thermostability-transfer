@@ -1417,7 +1417,7 @@ def calculate_p_values(df, ground_truth_col, statistic, n_bootstraps=100):
     df_out.columns = ['model1', 'weight1', 'model2', 'weight2', f'mean_{statistic}', 'p_value']
     return p_values, mean_values, df_out
 
-def model_combinations_heatmap(df, dfm, db_measurements, statistic, measurement, n_bootstraps=100, threshold=None, custom_colors=dict()):
+def model_combinations_heatmap(df, dfm, db_measurements, statistic, measurement, n_bootstraps=100, threshold=None, custom_colors=None):
 
     font = {'size'   : 14}
     matplotlib.rc('font', **font)
@@ -1569,7 +1569,7 @@ def get_stat_df(df, statistic, new_dir, preds=None):
     return stat_df
 
 
-def model_combinations_heatmap_2(df, preds, statistic, direction, upper='corr', threshold=None):
+def model_combinations_heatmap_2(df, preds, statistic, direction, upper='corr', threshold=None, custom_colors=None):
 
     font = {'size'   : 10}
     matplotlib.rc('font', **font)
@@ -1936,6 +1936,222 @@ def compare_performance(dbc,
     print(splits.groupby('class')['n'].max())
     plt.show()
     return splits
+
+def custom_barplot_2(data, x, y, hue, width, ax, use_color=None, legend_labels=None, legend_colors=None):
+
+    if legend_labels is not None and legend_colors is not None:
+        lut = dict(zip(legend_labels, legend_colors))
+
+    unique_x = data[x].unique()
+    data = data.copy(deep=True)#.sort_values(width)
+    if legend_labels is not None:
+        unique_hue = legend_labels
+        #unique_width = data.groupby([hue, width]).first().reset_index(level=1).loc[unique_hue][width]#.index.get_level_values(1)
+    else:
+        unique_hue = data[hue].unique()
+    unique_width = data.groupby(hue)[width].max()
+
+    #print(unique_width, unique_hue)
+    #assert len(unique_hue) == len(unique_width)
+
+    if use_color == None:
+        colors = legend_colors
+    else:
+        colors = [use_color]
+
+    max_width = sum(unique_width)
+
+    bar_centers = np.zeros((len(unique_x), len(unique_hue)))
+    for i in range(len(unique_x)):
+        bar_centers[i, :] = i
+
+    w_sum = 0
+    for j, w in enumerate(unique_width):
+        w_sum += w
+        bar_centers[:, j] += (-max_width / 2 + w_sum -w/2) / (max_width * 1.1)
+
+    for j, (width_value, hue_value, color) in enumerate(zip(unique_width, unique_hue, colors)):
+        y_max = -1
+        for i, x_value in enumerate(unique_x):
+            filtered_data = data[(data[x] == x_value) & (data[hue] == hue_value)] #(data[width] == width_value) & 
+            y_value = filtered_data[y].mean()
+            y_max = max(y_max, y_value)
+            bar_width = filtered_data[width].mean() / (max_width * 1.1)
+
+            if legend_labels is not None and legend_colors is not None:
+                color = lut[hue_value]
+            ax.bar(bar_centers[i, j], y_value, color=color, width=bar_width, alpha=1 if not use_color else 0.4)
+        ax.axhline(y=y_max, color=color, linestyle='dashed')
+
+    ax.set_xticks(np.arange(len(unique_x)))
+    ax.set_xticklabels(unique_x)
+    ax.set_xlabel(x)
+    ax.set_ylabel(y)
+
+    if legend_labels is not None and legend_colors is not None:
+        legend_elements = [Patch(facecolor=lut[hue_value], label=f'{hue_value}: {int(width_value)}') for hue_value, width_value in zip(unique_hue, unique_width)]
+    else:
+        legend_elements = [Patch(facecolor=color, label=f'{hue_value}: {int(width_value)}') for hue_value, width_value, color in zip(unique_hue, unique_width, colors)]
+    #ax.legend(handles=legend_elements, title=hue)
+    return legend_elements
+
+def compare_performance_2(db_complete,
+                        threshold_1 = 1.5, 
+                        threshold_2 = None, 
+                        split_col = 'hbonds', 
+                        split_col_2 = None, 
+                        direction = 'dir',
+                        statistic = 'MCC'):
+
+    font = {'size'   : 10}
+    matplotlib.rc('font', **font)
+
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(15,20), sharex=True)
+    fig.patch.set_facecolor('white')
+    sns.set_palette('tab10')
+
+    dbc = db_complete.copy(deep=True)
+
+    # Ungrouped performance (doesn't change)
+    c0 = compute_stats_bidirectional(dbc, stats=[statistic] + ['n'])
+    c00 = c0.reset_index()
+
+    if split_col != 'direction_split':
+        c00 = c00.loc[c00['direction']==direction]
+    else:
+        c00 = c00.loc[c00['direction']=='combined']
+    c00 = c00.sort_values(statistic, ascending=False)
+    c00 = c00.set_index('model')
+
+    # get only the models we want to include specified by custom colors
+    new_index = []
+    for i in c00.index:
+        for color in list(custom_colors.keys()):
+            if color in i:
+                new_index.append(i)
+                break
+    c00 = c00.loc[new_index]
+
+    # Unnormalized split performance
+    c = compute_stats_bidirectional(dbc, split_col=split_col if split_col != 'direction_split' else None, split_col_2=split_col_2, 
+                        split_val=threshold_1, split_val_2=threshold_2, stats=[statistic] + ['n'])
+    c1 = c.reset_index()
+
+    if split_col != 'direction_split':
+        c1 = c1.loc[c1['direction']==direction]
+    else:
+        remap = {'dir': 1, 'inv': 0}
+        c1['tmp_dir'] = c1['direction'].map(remap)
+        c1[split_col] = np.nan
+        c1.loc[c1['tmp_dir'] > 0.5, split_col] = 'direction_split > 0.5'
+        c1.loc[c1['tmp_dir'] <= 0.5, split_col] = 'direction_split <= 0.5'
+        c1['model'] = c1['model'].str[:-4]
+        c1 = c1.dropna(subset=split_col)
+        
+    c1 = c1.set_index('model').loc[new_index].reset_index()
+    
+    # case 2 split cols
+    if split_col_2 is not None:
+        dbc[f'{split_col} > {threshold_1} & {split_col_2} > {threshold_2}'] = (dbc[split_col] > threshold_1) & (dbc[split_col_2] > threshold_2)
+        dbc[f'{split_col} <= {threshold_1} & {split_col_2} > {threshold_2}'] = (dbc[split_col] <= threshold_1) & (dbc[split_col_2] > threshold_2)
+        dbc[f'{split_col} > {threshold_1} & {split_col_2} <= {threshold_2}'] = (dbc[split_col] > threshold_1) & (dbc[split_col_2] <= threshold_2)
+        dbc[f'{split_col} <= {threshold_1} & {split_col_2} <= {threshold_2}'] = (dbc[split_col] <= threshold_1) & (dbc[split_col_2] <= threshold_2)
+        vvs = [f'{split_col} > {threshold_1} & {split_col_2} > {threshold_2}', 
+                 f'{split_col} <= {threshold_1} & {split_col_2} > {threshold_2}',
+                 f'{split_col} > {threshold_1} & {split_col_2} <= {threshold_2}',
+                 f'{split_col} <= {threshold_1} & {split_col_2} <= {threshold_2}']
+
+    # case 1 split col, 2 thresholds
+    elif threshold_2 is not None:
+        dbc[f'{split_col} > {threshold_1}'] = dbc[split_col] > threshold_1
+        dbc[f'{split_col} > {threshold_1}'] = dbc[split_col] > threshold_1
+        dbc[f'{threshold_1} >= {split_col} > {threshold_2}'] = (dbc[split_col] <= threshold_1) & (dbc[split_col] > threshold_2)
+        dbc[f'{split_col} <= {threshold_2}'] = dbc[split_col] <= threshold_2
+        vvs = [f'{split_col} > {threshold_1}', f'{threshold_1} >= {split_col} > {threshold_2}', f'{split_col} <= {threshold_2}']
+
+    # case 1 split col, 1 threshold
+    elif threshold_2 is None and split_col != 'direction_split':
+        dbc[f'{split_col} > {threshold_1}'] = dbc[split_col] > threshold_1
+        dbc[f'{split_col} <= {threshold_1}'] = dbc[split_col] <= threshold_1
+        vvs = [f'{split_col} > {threshold_1}', f'{split_col} <= {threshold_1}']
+
+    if direction == 'combined':
+        dbc_stack = stack_frames(dbc).reset_index().set_index('uid')
+        #dbc_stack.index = dbc_stack.index.str[:-4]
+        dbc = dbc_stack.join(dbc.drop([c for c in dbc.columns if '_dir' in c or '_inv' in c], axis=1))
+
+    if split_col == 'direction_split':
+        dbc = dbc.reset_index()
+        tmp_split_col = 'direction'
+
+        remap = {'dir': 1, 'inv': 0}
+        dbc[split_col] = dbc['direction'].map(remap)
+        dbc[f'{split_col} > {threshold_1}'] = dbc[split_col] > threshold_1
+        dbc[f'{split_col} <= {threshold_1}'] = dbc[split_col] <= threshold_1
+        vvs = [f'{split_col} > {threshold_1}', f'{split_col} <= {threshold_1}']
+        
+    dbc = dbc.melt(id_vars=dbc.columns.drop(vvs), value_vars=vvs)
+    dbc = dbc.loc[dbc['value']].rename({'variable':'split'}, axis=1)
+    vvs2 = new_index
+
+    dbc = dbc.melt(id_vars=['split'], value_vars=vvs2)
+    std = dbc.groupby('variable')['value'].transform('std')
+    dbc['value'] /= std
+    c01 = pd.DataFrame()
+    for key in new_index:
+        subset = dbc.loc[dbc['variable']==key]
+        c01 = pd.concat([c01, subset])
+
+    categories = new_index
+
+    # Class-wise predicted distribution
+    ax = sns.violinplot(data=c01,x='variable',y='value',hue=f'split',ax=ax2, split=True if threshold_2 is None else False, bw=0.2, cut=0)
+
+    max_values = c01.groupby('variable')['value'].idxmax()
+
+    # Loop over each max value
+    for idx in max_values:
+        # Get the row from the DataFrame
+        row = c01.loc[idx]
+        # Get the x-coordinate for the annotation
+        x_coord = ax.get_xticks()[row['variable'] == c01['variable'].unique()]
+        ax.text(x_coord, row['value'], -round(float(c00.at[row['variable'], 'antisymmetry']), 2), ha='center', va='bottom')
+        ax.text(x_coord, row['value'], -round(float(c00.at[row['variable'], 'bias']), 2), ha='center', va='top') 
+
+    legend = ax.legend_
+    labels = [t.get_text() for t in legend.texts]
+    colors = [c.get_facecolor() for c in legend.legendHandles]
+
+    ax2.set_title('Class-wise predicted distribution')
+    ax2.set_ylabel('Stability / log-likelihood')
+    #ax2.set_xticks([])
+    ax2.set_xlabel('')
+    ax2.grid()
+    ax2.axhline(y=0, color='r', linestyle='dashed')
+    
+    legend_elements = custom_barplot_2(data=c1.drop_duplicates(), x='model', y=statistic, hue='class' if split_col != 'direction_split' else split_col, 
+        width='n', ax=ax1, legend_colors=colors, legend_labels=labels)
+    _ = custom_barplot_2(data=c00.drop_duplicates().reset_index(), 
+                   x='model', y=statistic, hue='class', width='n', ax=ax1, use_color='yellow')
+    ax1.set_title(statistic) #'Delta vs. split mean'
+    ax1.grid()
+    ax1.set_xlabel('')
+    if split_col == 'direction_split':
+        ax2.legend(handles=legend_elements, labels=['direct', 'inverse'])
+    else:
+       ax2.legend(handles=legend_elements) 
+    ax2.set_xticks(ax2.get_xticks(), categories, rotation=45, ha='right')
+
+    for ax in list([ax2, ax1]):
+        for tick_label in ax.get_xticklabels():
+            for key, val in custom_colors.items():
+                if key in tick_label.get_text():
+                    tick_label.set_color(custom_colors[key])
+    plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
+
+    print(c1.groupby('class')['n'].max())
+    plt.show()
+    return c1
 
 def stack_frames(dbf):
     db_stack = dbf.copy(deep=True)
