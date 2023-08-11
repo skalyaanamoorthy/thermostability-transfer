@@ -36,7 +36,7 @@ def download_assembly(code, chain, BIO_ASSEMBLIES_DIR):
             # for some reason this is the one bio assembly that doesn't exist
             # so use monomer instead
             if code in ['1W4E', '1E0L', '1GYZ', '1H92', '1QLY', '1URF', '1V1C',
-                        '1W4F', '1W4G', '1W4H']:
+                        '1W4F', '1W4G', '1W4H', '2WNM']:
                 urllib.request.urlretrieve(
                     f'http://files.rcsb.org/download/{code}.pdb.gz',
                     prot_path

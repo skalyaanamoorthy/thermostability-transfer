@@ -10,8 +10,10 @@ import os
 import argparse
 import utils
 import glob
+import re
 
 import pandas as pd
+import numpy as np
 
 # Some methods want unusual residues mapped to their closest original residue.
 # Others want them removed or replaced with an 'X'. This mapping will be used to
@@ -28,6 +30,13 @@ def main(args):
 
     output_path = os.path.abspath(args.output_root)
     print('Full path to outputs:', output_path)
+
+    # used when running preprocessing on a different computer than inference
+    if args.internal_path is not None:
+        internal_path = args.internal_path
+    else:
+        internal_path = output_path
+    
     BIO_ASSEMBLIES_DIR = os.path.join(output_path, 'assemblies')
     STRUCTURES_DIR = os.path.join(output_path, 'structures')
     ALIGNMENTS_DIR = os.path.join(output_path, 'alignments')
@@ -53,7 +62,7 @@ def main(args):
                     '1GUY': 'C', '1HK0': 'X', '1HYN': 'P', '1RN1': 'C',
                     '1RTP': '1', '1ZNJ': 'B', '2CI2': 'I', '5CRO': 'O',
                     '1IV7': 'A', '3L15': 'A', '4N6V': '2', '1YU5': 'X',
-                    '2L7F': 'P'}
+                    '2L7F': 'P', '2L7M': 'P', '2LVN': 'C'}
     
     orig_chains = {'1IV7': 'B', '3L15': 'B', '4N6V': '0'}
 
@@ -96,6 +105,10 @@ def main(args):
 
     # iterate through one PDB code at a time, e.g. all sharing the wt structure
     for code, group in db.groupby('code'):
+
+        if code in ['2MW9', '2MWA', '2MWB']:
+            print('Skipping', code)
+            continue
 
         print(f"Parsing {code}, {len(group['uid'].unique())} unique mutations")
 
@@ -155,7 +168,7 @@ def main(args):
         if len(matching_files) == 0:
             exp = "un" if code not in ["1DXX", "1TIT", "1JL9"] else ""
             print(f'Did not find an MSA for {code}. This is {exp}expected')
-            orig_msa = None
+            orig_msa = ''
         else:
             orig_msa = os.path.abspath(matching_files[0])
 
@@ -165,6 +178,25 @@ def main(args):
 
         # create a convenience link to the structure file
         pdb_file = os.path.join(STRUCTURES_DIR, f'{code}_{chain}.pdb')
+
+        inferred_offset = 0
+
+        if args.infer_pos:
+            offsets = []
+            for name, group2 in group.groupby(
+                ['wild_type', 'position', 'mutation']
+                if dataset != 's669' else 'Mut_seq'
+                ):
+                wt, pos, mut = name
+                try:
+                    pos_ = utils.infer_pos(group2, pdb_seq)
+                    inferred_offset = pos - pos_
+                    offsets.append(inferred_offset)
+                except:
+                    #print(name)
+                    continue
+            # hacky solution
+            inferred_offset = int(np.median(offsets))
 
         # now we process and validate individual mutations from the database
         for name, group2 in group.groupby(
@@ -182,13 +214,7 @@ def main(args):
                 mut = name[-1]
             else:
                 wt, pos, mut = name
-
-            if args.infer_pos:
-                try:
-                    pos = utils.infer_pos(group2, pdb_seq)
-                except:
-                    print(name)
-                    continue
+                pos -= inferred_offset
 
             # get offsets for interconversion between uniprot and pdb positions
             offset_up = utils.get_offsets(wt, pos, dataset, alignment_df)
@@ -221,7 +247,7 @@ def main(args):
                 # ESM-IF canonicalizes by default  
                 pu = pu.replace('Z', 'M')
                 
-                # validation setp
+                # validation step
                 assert pu[int(pos) - 1 + offset_pdb] == wt, \
                     f'PDB/UniProt offset is {offset_pdb}'
 
@@ -240,17 +266,24 @@ def main(args):
                         output_path, 'structures_mut',
                         f'{code.lower()}{chain_orig}_{wt}200{mut}.pdb')
 
+                pdb_file = re.sub(output_path, internal_path, pdb_file)
+                mutant_pdb_file = re.sub(
+                    output_path, internal_path, mutant_pdb_file
+                    )
+                orig_msa = re.sub(output_path, internal_path, orig_msa)
+
                 new_hit = pd.DataFrame({0: {
                     'code':code, 'wild_type':wt, 'position':pos, 'mutation':mut,
-                    'chain':chain, 'offset_up':offset_up, 'is_nmr': is_nmr,
+                    'chain':chain, 'offset_up':offset_up, 'is_nmr':is_nmr,
                     # compensate numbering error
                     'offset_robetta': '-11' if code=='3L15' else '0',
-                    'pdb_ungapped': pu, 'uid': code + '_' + str(pos) + mut, 
+                    'pdb_ungapped': pu, 'uid': code + '_' + str(pos+inferred_offset) + mut, 
                     'uniprot_seq': uniprot_seq, 'window_start': window_start, 
                     'pdb_file': pdb_file,'mutant_pdb_file': mutant_pdb_file,
                     'multimer': multimer, 'msa_file': orig_msa, 
-                    'tranception_dms': os.path.join(output_path,
+                    'tranception_dms': os.path.join(internal_path,
                     'DMS_Tranception', f'{code}_{chain}_{dataset}.csv'),
+                    'inferred_offset': inferred_offset
                 }}).T
 
                 # used for getting features in features.py
@@ -394,6 +427,9 @@ if __name__=='__main__':
     parser.add_argument('-o', '--output_root', 
                         help='root of folder to store outputs',
                         default='.')
+    parser.add_argument('-i', '--internal_path', 
+                        help='modified path to outputs at inference computer',
+                        default=None)
     parser.add_argument('-a', '--alignments',
                         help='folder where redundancy-reduced alignments are',
                         default='./data/msas')
