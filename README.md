@@ -17,7 +17,13 @@ This repository is for facilitating access to and benchmarking self-supervised d
 
 # Demo /  Instructions
 
-You can use the Jupyter notebooks from the analysis_notebooks folder to reproduce the figures (cells must be run sequentially), modifying the path at the start of the file and running each cell. The notebooks draw from precomputed features, the original databases from their respective authors, and predictions generated on a high-performance compute cluster (also tested on a flagship consumer GPU). All of these data sources are included in the repository, and instructions for reproducing the predictions and features are provided below. The expected outputs are shown below the cells. The expected runtimes are often included per-cell. The total runtime for all cells can be upwards of 12 hours, beacause the bootstrapping operations are quite expensive.
+You can use the Jupyter notebooks from the analysis_notebooks folder to reproduce the figures (cells must be run sequentially), modifying the path at the start of the file and running each cell. 
+
+The notebooks draw from precomputed features, the original databases from their respective authors, and predictions generated on a high-performance compute cluster (also tested on a flagship consumer GPU). All of these data sources are included in the repository, and instructions for reproducing the predictions and features are provided below. 
+
+The expected outputs are shown below the cells. The expected runtimes are often included per-cell. The total runtime for all cells can be upwards of 12 hours, beacause the bootstrapping operations are quite expensive.
+
+We recommend demoing the more thoroughly documented and tidy fireprot_analysis.ipynb .
 
 # Installation Guide
 
