@@ -214,7 +214,7 @@ def compute_ndcg(dbf, pred_col, true_col):
         print(relevance)
 
 
-def recovery_curves(rcv, models=['cartesian_ddg_dir', 'ddG_dir', 'dTm_dir', 'random_dir'], spacing=0.02):
+def recovery_curves(rcv, models=['cartesian_ddg_dir', 'ddG_dir', 'dTm_dir', 'random_dir'], measurements=('dTm', 'ddG'), spacing=0.02):
 
     def annotate_points(ax, data, x_col, y_col, hue_col, x_values, text_offset=(0, 0), spacing=0.02):
         line_colors = {}
@@ -247,88 +247,83 @@ def recovery_curves(rcv, models=['cartesian_ddg_dir', 'ddG_dir', 'dTm_dir', 'ran
     font = {'size'   : 12}
     matplotlib.rc('font', **font)
 
-    fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(12, 12))
+    if len(measurements) == 1:
+        fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(6, 12))
+        ax_list = [axes[0], axes[1]]
+    else:
+        fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(12, 12))
+        ax_list = [axes[0, 0], axes[1, 0], axes[0, 1], axes[1, 1]]
 
-    measurement = 'ddG'
+    if 'ddG' in measurements:
 
-    d5 = rcv.reset_index()
-    d5 = d5.loc[d5['model'].isin(models)].set_index(['measurement', 'model_type', 'model', 'class'])
-    d5 = d5.drop([c for c in d5.columns if 'stab_' in c], axis=1)
-    # for plotting recovery over thresholds
+        d5 = rcv.reset_index()
+        d5 = d5.loc[d5['model'].isin(models)].set_index(['measurement', 'model_type', 'model', 'class'])
+        d5 = d5.drop([c for c in d5.columns if 'stab_' in c], axis=1)
+        # for plotting recovery over thresholds
 
-    recov = d5[[c for c in d5.columns if '%' in c]].reset_index()
-    recov = recov.loc[recov['model']!='dTm_dir']
-    #recov = recov.loc[recov['model'].isin(['cartesian_ddg_dir', 'mpnn_20_00_dir', 'msa_transformer_mean_dir', 'esm1v_mean_dir'])]
-    recov = recov.loc[recov['measurement']==measurement]
-    recov = recov.drop(['measurement', 'model_type', 'class'], axis=1)
-    melted_1 = recov.melt(id_vars='model', value_vars=[str(int(s))+'%' for s in range(101)], var_name="variable", value_name="value")
-    #melted_2 = recov.melt(id_vars='model', value_vars=['pos_'+str(int(s))+'$' for s in range(101)],var_name="pos_variable", value_name="pos")
-    #melted_1['suffix'] = melted_1['variable']
-    #melted_2['suffix'] = melted_2['pos_variable'].str[4:]
-    #recov = pd.merge(melted_1, melted_2, on=['model', 'suffix']).drop(columns=["pos_variable", "suffix"])
-    recov = melted_1
+        recov = d5[[c for c in d5.columns if '%' in c]].reset_index()
+        recov = recov.loc[recov['model']!='dTm_dir']
+        #recov = recov.loc[recov['model'].isin(['cartesian_ddg_dir', 'mpnn_20_00_dir', 'msa_transformer_mean_dir', 'esm1v_mean_dir'])]
+        recov = recov.loc[recov['measurement']=='ddG']
+        recov = recov.drop(['measurement', 'model_type', 'class'], axis=1)
+        melted_1 = recov.melt(id_vars='model', value_vars=recov.columns, var_name="variable", value_name="value")
+        recov = melted_1
 
-    recov['variable'] = recov['variable'].str.strip('%').astype(float)
-    sns.lineplot(data=recov, x='variable', y='value', hue='model', ax=axes[0, 0])
-    #pos = recov.groupby('variable').max().reset_index()
-    #pos['pos'] /= pos['pos'].max()
-    #sns.lineplot(data=pos, x='variable', y='pos', ax=axes[0,0])
-    #axes[0, 0].set_xlabel('percentile of predictions and measurements compared')
-    axes[0, 0].set_xlabel('')
-    #axes[0, 1].set_ylabel('fraction of top mutants identified')
-    axes[0, 0].set_ylabel('fraction stabilizing')
-    axes[0, 0].set_title('ΔΔG')
-    annotate_points(axes[0, 0], recov, 'variable', 'value', 'model', [90], text_offset=(20, -0.05), spacing=spacing)
+        recov['variable'] = recov['variable'].str.strip('%').astype(float)
+        sns.lineplot(data=recov, x='variable', y='value', hue='model', ax=ax_list[0])
+        ax_list[0].set_xlabel('')
+        #axes[0, 1].set_ylabel('fraction of top mutants identified')
+        ax_list[0].set_ylabel('fraction stabilizing (ΔΔG > 0)')
+        ax_list[0].set_title('ΔΔG')
+        annotate_points(ax_list[0], recov, 'variable', 'value', 'model', [90], text_offset=(20, -0.05), spacing=spacing)
 
-    recov = d5[[c for c in d5.columns if '$' in c]].reset_index()
-    recov = recov.loc[recov['model']!='dTm_dir']
-    #recov = recov.loc[recov['model'].isin(['cartesian_ddg_dir', 'mpnn_20_00_dir', 'msa_transformer_mean_dir', 'esm1v_mean_dir'])]
-    recov = recov.loc[recov['measurement']==measurement]
-    recov = recov.drop(['measurement', 'model_type', 'class'], axis=1)
-    recov = recov.melt(id_vars='model')
-    recov['variable'] = recov['variable'].str.strip('$').astype(float)
-    sns.lineplot(data=recov, x='variable', y='value', hue='model', ax=axes[1, 0])
-    axes[1, 0].set_xlabel('percentile of predictions assessed')
-    axes[1, 0].set_ylabel('mean stabilizition')
-    annotate_points(axes[1, 0], recov, 'variable', 'value', 'model', [90], text_offset=(20, 0.05), spacing=spacing*1.5)
-    #annotate_points(axes[1, 0], recov, 'variable', 'value', 'model', [0.5], text_offset=(0.4, -0.2), spacing=spacing)
-    #annotate_points(axes[1, 0], recov, 'variable', 'value', 'model', [1], text_offset=(-0.4, 0.1), spacing=spacing+0.02)
-    #axes[1, 0].set_xscale('log')
-    #axes[1, 0].set_yscale('log')
+        recov = d5[[c for c in d5.columns if '$' in c]].reset_index()
+        recov = recov.loc[recov['model']!='dTm_dir']
+        #recov = recov.loc[recov['model'].isin(['cartesian_ddg_dir', 'mpnn_20_00_dir', 'msa_transformer_mean_dir', 'esm1v_mean_dir'])]
+        recov = recov.loc[recov['measurement']=='ddG']
+        recov = recov.drop(['measurement', 'model_type', 'class'], axis=1)
+        recov = recov.melt(id_vars='model')
+        recov['variable'] = recov['variable'].str.strip('$').astype(float)
+        sns.lineplot(data=recov, x='variable', y='value', hue='model', ax=ax_list[1])
+        ax_list[1].set_xlabel('percentile of predictions assessed')
+        ax_list[1].set_ylabel('mean stabilizition (kcal/mol)')
+        annotate_points(ax_list[1], recov, 'variable', 'value', 'model', [90], text_offset=(20, -0.05), spacing=spacing*3)
 
-    measurement = 'dTm'
+    if 'dTm' in measurements:
+        if len(ax_list) == 4:
+            i = 2
+        else:
+            i = 0
 
-    recov = d5[[c for c in d5.columns if '%' in c]].reset_index()
-    recov = recov.loc[recov['model']!='ddG_dir']
-    #recov = recov.loc[recov['model'].isin(['cartesian_ddg_dir', 'mpnn_20_00_dir', 'msa_transformer_mean_dir', 'esm1v_mean_dir'])]
-    recov = recov.loc[recov['measurement']==measurement]
-    recov = recov.drop(['measurement', 'model_type', 'class'], axis=1)
-    recov = recov.melt(id_vars='model')
-    recov['variable'] = recov['variable'].str.strip('%').astype(float)
-    sns.lineplot(data=recov, x='variable', y='value', hue='model', ax=axes[0, 1])
-    axes[0, 1].set_xlabel('')
-    #axes[0, 1].set_ylabel('fraction of top mutants identified')
-    axes[0, 1].set_ylabel(None)
-    axes[0, 1].set_title('ΔTm') #measurement_ = {'ddG': 'ΔΔG', 'dTm': 'ΔTm'}[measurement]
-    annotate_points(axes[0, 1], recov, 'variable', 'value', 'model', [90], text_offset=(20, -0.05), spacing=spacing)
+        recov = d5[[c for c in d5.columns if '%' in c]].reset_index()
+        recov = recov.loc[recov['model']!='ddG_dir']
+        #recov = recov.loc[recov['model'].isin(['cartesian_ddg_dir', 'mpnn_20_00_dir', 'msa_transformer_mean_dir', 'esm1v_mean_dir'])]
+        recov = recov.loc[recov['measurement']=='dTm']
+        recov = recov.drop(['measurement', 'model_type', 'class'], axis=1)
+        recov = recov.melt(id_vars='model')
+        recov['variable'] = recov['variable'].str.strip('%').astype(float)
+        sns.lineplot(data=recov, x='variable', y='value', hue='model', ax=ax_list[i])
+        ax_list[i].set_ylabel('fraction stabilizing (ΔTm > 0)')
+        #axes[0, 1].set_ylabel('fraction of top mutants identified')
+        ax_list[i].set_title('ΔTm') #measurement_ = {'ddG': 'ΔΔG', 'dTm': 'ΔTm'}[measurement]
+        annotate_points(ax_list[i], recov, 'variable', 'value', 'model', [90], text_offset=(20, -0.05), spacing=spacing)
 
-    recov = d5[[c for c in d5.columns if '$' in c]].reset_index()
-    recov = recov.loc[recov['model']!='ddG_dir']
-    #recov = recov.loc[recov['model'].isin(['cartesian_ddg_dir', 'mpnn_20_00_dir', 'msa_transformer_mean_dir', 'esm1v_mean_dir'])]
-    recov = recov.loc[recov['measurement']==measurement]
-    recov = recov.drop(['measurement', 'model_type', 'class'], axis=1)
-    recov = recov.melt(id_vars='model')
-    recov['variable'] = recov['variable'].str.strip('$y').astype(float)
-    sns.lineplot(data=recov, x='variable', y='value', hue='model', ax=axes[1, 1])
-    axes[1, 1].set_xlabel('percentile of predictions assessed')
-    #axes[1, 1].set_ylabel('fraction of stablizing mutants recovered')
-    axes[1, 1].set_ylabel(None)
-    annotate_points(axes[1, 1], recov, 'variable', 'value', 'model', [90], text_offset=(20, 0.8), spacing=spacing*3)
-    #annotate_points(axes[1, 1], recov, 'variable', 'value', 'model', [0.5], text_offset=(0.4, -0.2), spacing=spacing)
-    #annotate_points(axes[1, 1], recov, 'variable', 'value', 'model', [1], text_offset=(-0.4, 0.1), spacing=spacing+0.035)
-    #axes[1, 1].set_xscale('log')
-    #axes[1, 1].set_yscale('log')
-    handles, labels = axes[0,0].get_legend_handles_labels()
+        i += 1
+
+        recov = d5[[c for c in d5.columns if '$' in c]].reset_index()
+        recov = recov.loc[recov['model']!='ddG_dir']
+        #recov = recov.loc[recov['model'].isin(['cartesian_ddg_dir', 'mpnn_20_00_dir', 'msa_transformer_mean_dir', 'esm1v_mean_dir'])]
+        recov = recov.loc[recov['measurement']=='dTm']
+        recov = recov.drop(['measurement', 'model_type', 'class'], axis=1)
+        recov = recov.melt(id_vars='model')
+        recov['variable'] = recov['variable'].str.strip('$y').astype(float)
+        sns.lineplot(data=recov, x='variable', y='value', hue='model', ax=ax_list[i])
+        ax_list[i].set_xlabel('percentile of predictions assessed')
+        #axes[1, 1].set_ylabel('fraction of stablizing mutants recovered')
+        ax_list[i].set_ylabel('mean stabilizition (deg. K)')
+        annotate_points(ax_list[i], recov, 'variable', 'value', 'model', [90], text_offset=(20, -0.05), spacing=spacing*12)
+
+    handles, labels = ax_list[0].get_legend_handles_labels()
     for ax in axes.flat:
         ax.get_legend().remove()
 
@@ -1159,7 +1154,7 @@ def compute_stats(
                         for stat in percentiles:
                             k = stat.split('%')[0]
                             # convert percentile to top-k-percentage
-                            k = (100-int(k))/100
+                            k = (100-float(k))/100
                             # always a fraction of the number of muts per-protein
                             l = int(len(group) * k)
 
@@ -1209,7 +1204,7 @@ def compute_stats(
                         for stat in percentiles:
                             k = stat.split('$')[0]
                             # convert percentile to top-k-percentage
-                            k = (100-int(k))/100
+                            k = (100-float(k))/100
                             # always a fraction of the number of muts per-protein
                             l = int(len(group) * k)
 
@@ -1217,7 +1212,7 @@ def compute_stats(
                             kth_prediction = set(sorted_predictions.head(l).index)
                             total_pos = len(kth_prediction)
 
-                            value = group.loc[kth_prediction, meas].mean()
+                            value = group.loc[kth_prediction, meas].sum()
                             if np.isnan(value):
                                 value = 0
                             # mean stabilization of predicted positives
@@ -1229,7 +1224,8 @@ def compute_stats(
 
                     for stat in percentiles:
                         # TP / (TP+FP) = precision
-                        df_out.at[(meas,sp,col), stat] /= len(pred_df_cont['code'].unique())
+                        #df_out.at[(meas,sp,col), stat] /= len(pred_df_cont['code'].unique())
+                        df_out.at[(meas,sp,col), stat] /= df_out.at[(meas,sp,col), 'pos_$_'+stat]
                     
                     df_out = df_out.drop(['pos_$_'+stat for stat in percentiles], axis=1)
 
@@ -1656,7 +1652,7 @@ def model_combinations_heatmap_2(df, preds, statistic, direction, upper='corr', 
     cbar1 = plt.colorbar(ax.collections[1], ax=ax, location="right", use_gridspec=False, pad=0.05)
 
     try:
-        statistic_ = {'weighted_ndcg': 'wNDCG', 'mean_ndcg': 'mean NDCG', 'weighted_spearman': 'wρ', 'weighted_auprc': 'wAUPRC', 'auprc': 'AUPRC', 'ausrc': 'AUPPC', 'net_stabilization': 'Net Stabilization'}[statistic]
+        statistic_ = {'weighted_ndcg': 'wNDCG', 'mean_ndcg': 'mean NDCG', 'weighted_spearman': 'wρ', 'weighted_auprc': 'wAUPRC', 'auprc': 'AUPRC', 'auppc': 'AUPPC', 'net_stabilization': 'Net Stabilization'}[statistic]
     except:
         statistic_ = statistic
     try:
@@ -1841,7 +1837,7 @@ def compare_performance(dbc,
 
     splits = full.set_index('model') 
     splits = splits.loc[ungrouped0['model']]#.reset_index()
-    splits = splits.loc[ungrouped0['model']].reset_index() #.loc[splits['measurement']==measurement]
+    splits = splits.loc[ungrouped0['model']].reset_index() #.loc[splits['measurement']=='ddG']
 
     #ungrouped0 = splits.melt(id_vars=['model', 'class'], value_vars=['tp', 'tn', 'fp', 'fn'])
 
@@ -2526,10 +2522,10 @@ def compute_stats_bidirectional(db_gt_preds, split_col=None, split_val=None, spl
                     df_out.at[(direction,sp,pred_col), 'weighted_auprc'] = w_cum_ps / (w_cum_d if cum_d > 0 else 1)
 
                 if split_col == 'tmp':
-                    if ('ausrc' in stats) or (stats == ()):
-                        percentiles = [str(int(s))+'$' for s in range(101)]
+                    if ('auppc' in stats) or (stats == ()):
+                        percentiles = [str(int(s))+'%' for s in range(101)]
                     else:
-                        percentiles = [s for s in stats if '$' in s]
+                        percentiles = [s for s in stats if '%' in s]
 
                     for stat in percentiles:
                         df_out.at[(direction,sp,pred_col), stat] = 0
@@ -2542,7 +2538,7 @@ def compute_stats_bidirectional(db_gt_preds, split_col=None, split_val=None, spl
                         sorted_truth = group.sort_values([f'ddG{("_"+direction) if not stacked else ""}'] , ascending=False)
 
                         for stat in percentiles:
-                            k = stat.split('$')[0]
+                            k = stat.split('%')[0]
                             k = (100-int(k))/100
                             l = int(len(group) * k) #np.floor
 
@@ -2559,10 +2555,57 @@ def compute_stats_bidirectional(db_gt_preds, split_col=None, split_val=None, spl
                     
                     df_out = df_out.drop(['pos_'+stat for stat in percentiles], axis=1)
 
-                    if ('ausrc' in stats) or (stats == ()):
-                        df_out.at[(direction,sp,pred_col), 'ausrc'] = df_out.loc[(direction,sp,pred_col), [c for c in df_out.columns if '$' in c and not 'stab_' in c]].mean()
+                    if ('auppc' in stats) or (stats == ()):
+                        df_out.at[(direction,sp,pred_col), 'auppc'] = df_out.loc[(direction,sp,pred_col), [c for c in df_out.columns if '%' in c and not 'stab_' in c]].mean()
 
-                    if ('aumrc' in stats) or (stats == ()):
+                    # mean stability vs prediction percentile curve
+                    if ('aumsc' in stats) or (stats == ()):
+                        percentiles = [str(int(s))+'$' for s in range(101)]
+                    else:
+                        percentiles = [s for s in stats if '$' in s]
+
+                    for stat in percentiles:
+                        # in this percentile and stabilizing
+                        df_out.at[(direction,sp,pred_col), stat] = 0
+                        # number of predicted positives in this percentile
+                        df_out.at[(direction,sp,pred_col), 'pos_$_'+stat] = 0
+                    
+                    # percentiles are defined per-protein
+                    for name, group in current_full_predictions.groupby('code'):
+                        # stabilizing mutations are defined at 0 threshold
+                        sorted_predictions = group.sort_values(pred_col, ascending=False)
+
+                        for stat in percentiles:
+                            k = stat.split('$')[0]
+                            # convert percentile to top-k-percentage
+                            k = (100-float(k))/100
+                            # always a fraction of the number of muts per-protein
+                            l = int(len(group) * k)
+
+                            # top predictions at percentile
+                            kth_prediction = set(sorted_predictions.head(l).index)
+                            total_pos = len(kth_prediction)
+
+                            value = group.loc[kth_prediction, f'ddG{("_"+direction) if not stacked else ""}'].sum()
+                            if np.isnan(value):
+                                value = 0
+                            # mean stabilization of predicted positives
+                            df_out.at[(direction,sp,pred_col), stat] += value
+                            # total positive predictions
+                            df_out.at[(direction,sp,pred_col), 'pos_$_'+stat] += total_pos
+
+                    for stat in percentiles:
+                        # TP / (TP+FP) = precision
+                        #df_out.at[(meas,sp,col), stat] /= len(pred_df_cont['code'].unique())
+                        df_out.at[(direction,sp,pred_col), stat] /= df_out.at[(direction,sp,pred_col), 'pos_$_'+stat]
+                    
+                    df_out = df_out.drop(['pos_$_'+stat for stat in percentiles], axis=1)
+
+                    # estimate the AUC as the mean since the max is 1 and min is 0 and dx stays the same
+                    if ('aumsc' in stats) or (stats == ()):
+                        df_out.at[(direction,sp,pred_col), 'aumsc'] = df_out.loc[(direction,sp,pred_col), [c for c in df_out.columns if '$' in c and not 'pos_$_' in c]].mean()
+
+                    if ('aukxrc' in stats) or (stats == ()):
                         ks = [str(round(s, 2))+'x_recovery' for s in np.logspace(np.log(0.01), np.log(3), 100, base=np.e)]
                     else:
                         ks = [s for s in stats if 'x_recovery' in s]
@@ -2584,8 +2627,8 @@ def compute_stats_bidirectional(db_gt_preds, split_col=None, split_val=None, spl
                             total_gt += len(kth_ground_truth)
 
                         df_out.at[(direction,sp,pred_col), str(k_factor)+'x_recovery'] = total / total_gt
-                    if ('aumrc' in stats) or (stats == ()):
-                        df_out.at[(direction,sp,pred_col), 'aumrc'] = df_out.loc[(direction,sp,pred_col), [c for c in df_out.columns if 'x_recovery' in c]].mean()
+                    if ('aukxrc' in stats) or (stats == ()):
+                        df_out.at[(direction,sp,pred_col), 'aukxrc'] = df_out.loc[(direction,sp,pred_col), [c for c in df_out.columns if 'x_recovery' in c]].mean()
 
                 # only get combined data for entries which have an inverse since they are more likely to have a corresponding forward as well
                 if direction == 'inv':
@@ -2701,7 +2744,7 @@ def compute_stats_bidirectional(db_gt_preds, split_col=None, split_val=None, spl
                         for code, group in current_full_predictions.groupby('code'):
                             top_1_stab += group.sort_values(pred_col_comb, ascending=False)['ddG'].head(1).item()
 
-                    df_out.at[('combined',sp,pred_col_comb), 'mean_t1s'] = top_1_stab / len(current_full_predictions['code'].unique())
+                        df_out.at[('combined',sp,pred_col_comb), 'mean_t1s'] = top_1_stab / len(current_full_predictions['code'].unique())
 
                     if ('ndcg' in stats) or (stats == ()):
                         df_out.at[('combined',sp,pred_col_comb), 'ndcg'] = compute_ndcg(current_full_predictions, pred_col_comb, 'ddG')
@@ -2761,10 +2804,10 @@ def compute_stats_bidirectional(db_gt_preds, split_col=None, split_val=None, spl
                         df_out.at[('combined',sp,pred_col_comb), 'weighted_auprc'] = w_cum_ps / (w_cum_d if cum_d > 0 else 1)
 
                     if split_col == 'tmp':
-                        if ('ausrc' in stats) or (stats == ()):
-                            percentiles = [str(int(s))+'$' for s in range(101)]
+                        if ('auppc' in stats) or (stats == ()):
+                            percentiles = [str(int(s))+'%' for s in range(101)]
                         else:
-                            percentiles = [s for s in stats if '$' in s]
+                            percentiles = [s for s in stats if '%' in s]
 
                         for stat in percentiles:
                             df_out.at[('combined',sp,pred_col_comb), stat] = 0
@@ -2777,7 +2820,7 @@ def compute_stats_bidirectional(db_gt_preds, split_col=None, split_val=None, spl
                             sorted_truth = group.sort_values('ddG', ascending=False)
 
                             for stat in percentiles:
-                                k = stat.split('$')[0]
+                                k = stat.split('%')[0]
                                 k = (100-int(k))/100
                                 l = int(len(group) * k) #np.floor
 
@@ -2794,10 +2837,57 @@ def compute_stats_bidirectional(db_gt_preds, split_col=None, split_val=None, spl
                         
                         df_out = df_out.drop(['pos_'+stat for stat in percentiles], axis=1)
 
-                        if ('ausrc' in stats) or (stats == ()):
-                            df_out.at[('combined',sp,pred_col_comb), 'ausrc'] = df_out.loc[('combined',sp,pred_col_comb), [c for c in df_out.columns if '$' in c and not 'stab_' in c]].mean()
+                        if ('auppc' in stats) or (stats == ()):
+                            df_out.at[('combined',sp,pred_col_comb), 'auppc'] = df_out.loc[('combined',sp,pred_col_comb), [c for c in df_out.columns if '%' in c and not 'stab_' in c]].mean()
 
-                        if ('aumrc' in stats) or (stats == ()):
+                        # mean stability vs prediction percentile curve
+                        if ('aumsc' in stats) or (stats == ()):
+                            percentiles = [str(int(s))+'$' for s in range(101)]
+                        else:
+                            percentiles = [s for s in stats if '$' in s]
+
+                        for stat in percentiles:
+                            # in this percentile and stabilizing
+                            df_out.at[('combined',sp,pred_col_comb), stat] = 0
+                            # number of predicted positives in this percentile
+                            df_out.at[('combined',sp,pred_col_comb), 'pos_$_'+stat] = 0
+                        
+                        # percentiles are defined per-protein
+                        for name, group in current_full_predictions.groupby('code'):
+                            # stabilizing mutations are defined at 0 threshold
+                            sorted_predictions = group.sort_values(pred_col_comb, ascending=False)
+
+                            for stat in percentiles:
+                                k = stat.split('$')[0]
+                                # convert percentile to top-k-percentage
+                                k = (100-float(k))/100
+                                # always a fraction of the number of muts per-protein
+                                l = int(len(group) * k)
+
+                                # top predictions at percentile
+                                kth_prediction = set(sorted_predictions.head(l).index)
+                                total_pos = len(kth_prediction)
+
+                                value = group.loc[kth_prediction, 'ddG'].sum()
+                                if np.isnan(value):
+                                    value = 0
+                                # mean stabilization of predicted positives
+                                df_out.at[('combined',sp,pred_col_comb), stat] += value
+                                # total positive predictions
+                                df_out.at[('combined',sp,pred_col_comb), 'pos_$_'+stat] += total_pos
+
+                        for stat in percentiles:
+                            # TP / (TP+FP) = precision
+                            #df_out.at[(meas,sp,col), stat] /= len(pred_df_cont['code'].unique())
+                            df_out.at[('combined',sp,pred_col_comb), stat] /= df_out.at[('combined',sp,pred_col_comb), 'pos_$_'+stat]
+                        
+                        df_out = df_out.drop(['pos_$_'+stat for stat in percentiles], axis=1)
+
+                        # estimate the AUC as the mean since the max is 1 and min is 0 and dx stays the same
+                        if ('aumsc' in stats) or (stats == ()):
+                            df_out.at[('combined',sp,pred_col_comb), 'aumsc'] = df_out.loc[('combined',sp,pred_col_comb), [c for c in df_out.columns if '$' in c and not 'pos_$_' in c]].mean()
+
+                        if ('aukxrc' in stats) or (stats == ()):
                             ks = [str(round(s, 2))+'x_recovery' for s in np.logspace(np.log(0.01), np.log(3), 100, base=np.e)]
                         else:
                             ks = [s for s in stats if 'x_recovery' in s]
@@ -2819,8 +2909,8 @@ def compute_stats_bidirectional(db_gt_preds, split_col=None, split_val=None, spl
                                 total_gt += len(kth_ground_truth)
 
                             df_out.at[('combined',sp,pred_col_comb), str(k_factor)+'x_recovery'] = total / total_gt
-                        if ('aumrc' in stats) or (stats == ()):
-                            df_out.at[('combined',sp,pred_col_comb), 'aumrc'] = df_out.loc[('combined',sp,pred_col_comb), [c for c in df_out.columns if 'x_recovery' in c]].mean()
+                        if ('aukxrc' in stats) or (stats == ()):
+                            df_out.at[('combined',sp,pred_col_comb), 'aukxrc'] = df_out.loc[('combined',sp,pred_col_comb), [c for c in df_out.columns if 'x_recovery' in c]].mean()
  
     #df_out.to_csv('../../zeroshot suppl/class_na_1.csv')
     
