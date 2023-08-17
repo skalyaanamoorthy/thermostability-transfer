@@ -1,6 +1,6 @@
 # Protein Sequence Likelihood Modelling for Thermostability Prediction
 
-This repository is for facilitating access to self-supervised deep learning models, which predict the likelihood of amino acids in their biochemical context, in order to make zero-shot predictions of thermostability measurements.
+This repository is for facilitating access to and benchmarking self-supervised deep learning models, which predict the likelihood of amino acids in their biochemical context, in order to make zero-shot predictions of thermostability measurements.
 
 # System Requirements
 
@@ -9,7 +9,7 @@ This repository is for facilitating access to self-supervised deep learning mode
   * tested on WSL2
   * tested on Fedora 37
 * Anaconda / Python 3.8
-  * dependencies included in requirements.txt
+  * dependencies included in requirements.txt (additionally requirements_inference.txt for running inference)
 * NVIDIA GPU (if running inference)
   * tested on A100, RTX 3090
 * NVIDIA CUDA (tested v11) and CUDNN (if running inference)
