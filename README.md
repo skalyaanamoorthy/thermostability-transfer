@@ -1,6 +1,31 @@
-## Protein Sequence Likelihood Modelling for Thermostability Prediction
+# Protein Sequence Likelihood Modelling for Thermostability Prediction
 
 This repository is for facilitating access to self-supervised deep learning models, which predict the likelihood of amino acids in their biochemical context, in order to make zero-shot predictions of thermostability measurements.
+
+# System Requirements
+
+* Linux-based Operating System (any modern Linux distribution should work)
+  * tested on GNU/Linux 3.10.0-1160.71.1.el7.x86_64, 4.18.0-477.21.1.el8_8.x86_64
+  * tested on WSL2
+  * tested on Fedora 37
+* Anaconda / Python 3.8
+  * dependencies included in requirements.txt
+* NVIDIA GPU (if running inference)
+  * tested on A100, RTX 3090
+* NVIDIA CUDA (tested v11) and CUDNN (if running inference)
+* HMMER (if generating MSAs)
+
+# Demo /  Instructions
+
+You can use the Jupyter notebooks from the analysis_notebooks folder to reproduce the figures (cells must be run sequentially), modifying the path at the start of the file and running each cell. The notebooks draw from precomputed features, the original databases from their respective authors, and predictions generated on a high-performance compute cluster (also tested on a flagship consumer GPU). All of these data sources are included in the repository, and instructions for reproducing the predictions and features are provided below. The expected outputs are shown below the cells. The expected runtimes are often included per-cell. The total runtime for all cells can be upwards of 12 hours, beacause the bootstrapping operations are quite expensive.
+
+# Installation Guide
+
+Note: only general setup is required to demo code.
+
+The expected installation time for core functionality is ~30 minutes, depending on which dependencies you are intending to install. Installation time for tested models for inference depends on the internet connection speed.
+
+The sections after general setup are for reproducing the experiments starting from raw data.
 
 ## General Setup
 
@@ -148,10 +173,3 @@ Finally, you can run the following to compute the features.
 `python3 preprocessing/compute_features.py --alistat_loc YOUR_ALISTAT_INSTALLATION`
 
 It is expected that there will be some errors in computing features. AliStats might fail for large alignments if you do not have enough RAM. Remember that the features have been pre-computed for your convience as stated above, and any missing features can be handled by merging dataframes.
-
-## Analysis
-
-Then, you can use the analysis_notebooks to reproduce the figures, modifying the path(s) at the start of the file and running each cell.
-
-
-
